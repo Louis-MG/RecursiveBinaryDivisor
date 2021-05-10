@@ -54,21 +54,21 @@ def create_dir(path, verbose) :
 	"""
 	path = str(path)
 	if os.path.isdir(path) == True :
-		input = input("The directory {path} already exists, overwrite ? [O/n]")
+		answer  = input("The directory {path} already exists, overwrite ? [O/n]")
 		good_answer = False
 		while good_answer == False :
-			if input == "O" :
+			if answer == "O" :
 				shutil.rmtree(path) 
 				os.mkdir(path)
 				good_answer = True
-			elif input == "n" :
+			elif answer == "n" :
  				good_answer = True
 			else :
-	                	input = input("Sorry, but '{input}'is not a valid answer.\nThe directory {path} already exists, overwrite ? [O/n]")
+	                	answer = input("Sorry, but '{answer}'is not a valid answer.\nThe directory {path} already exists, overwrite ? [O/n]")
 	else :
 		os.mkdir(path)
 	if args.verbose :
-        	f"the directory {output} has been created"
+        	print("The directory  has been created.")
 
 def count_files(path) :
 	"""
@@ -106,7 +106,7 @@ def iter_epsilon(args.epsilonmin, args.epsilonmax, args.minpoints, args.verbose)
 			shutil.rmtree('cluster')
 			os.chdir("../")
 			if args.verbose :
-				f"The cluster {curr_dir} is a leaf, leaving directory ..."
+				print("The cluster is a leaf, leaving directory ...")
 		elif test < 2 :
                 	eps1 = args.epsilonmin
                 	eps2 = epsilon
@@ -117,15 +117,15 @@ def iter_epsilon(args.epsilonmin, args.epsilonmax, args.minpoints, args.verbose)
                         epsilon = math.ceil((eps1+eps2)/2) #same case with eps1 = 9 and eps2 = 10
 		else :
 			if args.verbose == True :
-				f"Clustering of {curr_dir} done, with epsilon = {epsilon}."
+				print("Clustering of {curr_dir} done, with epsilon = {epsilon}.")
 			with open(parameters.join(["../",".txt"]), "a") as f: 
-				f.writelines([str(currr_dir), "\t", str(epsilon), "\n"])
+				f.writelines([str(curr_dir), "\t", str(epsilon), "\n"])
 			dir_1 = curr_dir.join(["../", ".1"]) #names of the next directories
 			dir_2 = curr_dir.join(["../", ".2"])
 			os.mkdir(dir_1) #creates the output directories of the new clusters
 			os.mkdir(dir_2)
 			if args.verbose :
-				f"Moving files of the new cluster to their directory ..."
+				print("Moving files of the new cluster to their directory ...")
 			shutil.move('cluster/fastaCL1', dir_1) #moves the files to the next directories
 			shutil.move('cluster/ev1', dir_1)
 			shutil.move('cluster/fastaCL2', dir_2)
@@ -143,7 +143,7 @@ def extract_names(source, args.verbose) :
 	Command usage: extract_name(/path/to/parent/folder, [1, 2, 3, 20], True)
 	"""
 	if args.verbose  :
-                f"Extracting names of the sequences in the fasta file ..."
+                print("Extracting names of the sequences in the fasta file ...")
 	old_fasta = [i for i in os.listdir(source) if i.endswith(".fst")][0] #selects the parent fasta file
 	curr_fasta = [i for i in os.listdir("./") if i.endswith(".fst")][0] #selects the child fasta file
 	with open(old_fasta, "r") as f :
@@ -151,12 +151,16 @@ def extract_names(source, args.verbose) :
                 names  = [i for i in lines if i.startswith(">")] #list of sequences nqmes from parent file, looks like ">ESHIH49767"
         f.close()
 	if args.verbose :
-		f"Writing names of the sequences ..."
+		print("Writing names of the sequences ...")
 	with open(curr_fasta, "r+") as f :
-		lines = f.readlines()	
+		lines = f.readlines()
 		index = [int(i.lstrip(">sequence_")) for i in lines if i.startswith(">")] #index of sequences from child fasta file we want in parent fasta file
-		for j in index :
-			lines[2*j] = names[j] #gets sequence name corresponding to index
+		n = 0
+		for j in range(len(lines)) : #goes through lines by index value
+			if j.startswith(">") : #if line is a sequence id
+				n += 1 #counts indexes of sequences ids
+				if n in index : #if the index of the sequence is in the list of the ones to get
+					lines[j] = names[n] #changes sequence name corresponding to index
 	f.close()
 
 def extract_kmer(source, args.verbose) :
@@ -167,7 +171,7 @@ def extract_kmer(source, args.verbose) :
 	Command usage: extract_kmer(/path/to/parent/folder, True)
 	"""
 	if args.verbose  :
-		f"Extracting counts of the sequences in the fasta file ..."
+		print("Extracting counts of the sequences in the fasta file ...")
 	file = [i in os.listdir("./") if i.endswith(".fst")][0] #gets the name of the fasta file 
 	with open(file, "r") as f :
 		lines = f.readlines()
@@ -177,13 +181,13 @@ def extract_kmer(source, args.verbose) :
 	sub_counts = counts[index, :] #selects the rows corresponding to our sequences
 	np.savetxt("./counts.kmer", sub_counts, fmt = '%s', delimiter = "\t") #saves in a new counts.kmer file
 	if args.verbose :
-		f"Sub-counts saved in counts.kmer"
+		print("Sub-counts saved in counts.kmer")
 
 ## main
 
 create_dir(args.ouput, args.verbose) #create output dir
 if args.verbosity :
-	f"Going to {args.output} directory"
+	print("Going to {args.output} directory")
 os.chdir(args.output)
 parameters = ".".join(str(args.kmer), str(args.epsilonmin), str(args,epsilonmax), str(args.minpoints), str(args.dimpca), "txt") #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
 open(parameters, "w") #creates parameters text file
@@ -193,10 +197,10 @@ folders = ["cluster1", "cluster2"] #initialises the list of cluster directories 
 if os.path.isfile("./counts.kmer") :
 	#checks if the counts are already done, to avoid repeating a demanding calculation step
 	if args.verbose :
-		f"File counts.kmer already exists, skipping counting step."	
+		print("File counts.kmer already exists, skipping counting step.")	
 else :
 	if args.verbose :
-                f"Counting kmers and saving in a primary counts file ..."
+                print("Counting kmers and saving in a primary counts file ...")
 	subprocess.Popen(['fasta2kmer', args.fastafile, args.kmer, args.threads, '0', '>', 'counts.kmer'], shell = True, stdout = subprocess.PIPE)
 
 subprocess.Popen(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', args.kmer, args.threads], shell = True, stdout = subprocess.PIPE)

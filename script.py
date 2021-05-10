@@ -100,7 +100,7 @@ def iter_epsilon(epsilonmin, epsilonmax, minpoints, verbose) :
 	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0]
 	while test != True :
 		shutil.rmtree('cluster')#del the directory itself too, dont want that
-		subprocess.Popen(['cluster_dbscan_PCA', fasta, pca, epsilon, minpoints, 'cluster/fastaCL', 'cluster/ev'], shell = True,stdout = subprocess.PIPE)
+		subprocess.Popen(['cluster_dbscan_PCA', fasta, pca, epsilon, minpoints, 'cluster/fastaCL', 'cluster/ev'], shell = True,stdout = subprocess.PIPE, stderr = subprocess.PIPE)
 		test = count_files('cluster')
 		if epsilon == epsilonmin or epsilon == epsilonmax :
 			shutil.rmtree('cluster')
@@ -187,7 +187,7 @@ def extract_kmer(source, verbose) :
 ## main
 
 create_dir(args.output, args.verbose) #create output dir
-subprocess(['cp', args.fastafile, args.output], stdout = subrpocess.PIPE)
+subprocess.Popen(['cp', args.fastafile, args.output], stdout = subprocess.PIPE)
 if args.verbose :
 	print("Going to {args.output} directory")
 os.chdir(args.output)
@@ -195,24 +195,30 @@ parameters = ".".join([str(args.kmer), str(args.epsilonmin), str(args.epsilonmax
 open(parameters, "w") #creates parameters text file
 os.mkdir("cluster1") #creates the directories for the two first clusters
 os.mkdir("cluster2")
+print(os.getcwd())
 folders = ["cluster1", "cluster2"] #initialises the list of cluster directories to visit
-if os.path.isfile("./counts.kmer") :
+if os.path.isfile(os.path.join(os.getcwd(),"counts.kmer")) :
 	#checks if the counts are already done, to avoid repeating a demanding calculation step
 	if args.verbose :
 		print("File counts.kmer already exists, skipping counting step.")	
 else :
 	if args.verbose :
                 print("Counting kmers and saving in a primary counts file ...")
-	subprocess.Popen(['fasta2kmer', args.fastafile, str(args.kmer), str(args.threads), '0', '>', 'counts.kmer'], shell = True, stdout = subprocess.PIPE)
+	p = subprocess.Popen(['fasta2kmer', args.fastafile, str(args.kmer), str(args.threads), '0', '>', 'counts.kmer'], shell = True, stdout = subprocess.PIPE, stderr=subprocess.PIPE)
+	p.wait()
 
-subprocess.Popen(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.kmer), str(args.threads)], shell = True, stdout = subprocess.PIPE)
+p = subprocess.Popen(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.kmer), str(args.threads)], shell = True, stdout = subprocess.PIPE, stderr=subprocess.PIPE)
+p.wait()
+
+######TODO: does not work, no output from subprocess
+
 #subprocess to excecute the command to get the two first clusters
 source = os.getcwd().split("/")[-1] #gets the name of the parent folder
 for i in folders :
 	os.chdir(i)
 	extract_kmer(source, args.verbose) #takes parent counts.kmer, extracts kmers into a new counts.kmer 
 	extract_names(source, args.verbose) #extracts real sequences's names and inject them in new fasta file
-	subprocess(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.kmer), str(args.threads)], stdout = subprocess.PIPE)#produces the pca file
+	subprocess(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.kmer), str(args.threads)], stdout = subprocess.PIPE, stderr=subprocess.PIPE)#produces the pca file
 	a, b = iter_epsilon(epsilonmin, epsilonmax, minpoints, output, verbose)
 	folders.append(a, b) #adds the new folders to the list so they are visited too
 	source = a.rstrip(".1")

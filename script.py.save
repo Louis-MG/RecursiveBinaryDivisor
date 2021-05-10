@@ -1,0 +1,143 @@
+#RUN WITH PYTHON3
+#pyhton script to cluster by succesive dychotomy the sequences in fasta file using mnhn-tree-tools
+
+
+#wrapper le calcul des kmer et de la pca dedans, avec verif de l'existence du fichier des kmers a chaque fois
+#erreurs a mettre avec un raise()
+##FAIRE DU CODE BEAU ET FACILE A RELIRE
+
+	
+import argparse
+import os
+import subprocess
+
+
+## arguments
+#recap argument: fasta, kmer, epsilon min/max (range), dimpca, threads, verbose, minpoints, help, output
+
+
+parser = argparse.ArgumentParser(description = 'Process fasta file, kmer length, epsilon arguments. PCA dimensions and numer of threads optionnal.')
+
+
+parser.add_argument('--fasta_file', '-f', dest = 'fastafile', action = 'store', type = str, required = True,
+					help = 'Name of the fasta file containing the sequences to cluster during the different steps.')
+
+
+parser.add_argument('--epsilon_min' , '-e1', dest = 'epsilonmin', action = 'store', type = int, required = True, 
+					help = 'minium value of epsilon used for the different calculation steps.') 
+
+parser.add_argument('--epsilon_max' , '-e2', dest = 'epsilonmax', action = 'store', type = int, required = True,
+                                        help = 'maximum value of epsilon used for the different calculation steps.') 
+
+parser.add_argument('--min_points', '-m', dest = 'minpoints', action = 'store', default = 3, type = int, 
+					help = 'Minimun number of sequences to find to form a cluster during the clustering steps (default: 3).')
+
+
+parser.add_argument('--dim_pca', '-d', dest = 'dimpca', action = 'store', default = 5, type = int, 
+					help = 'Number of dimensions to use from the pca during the calculation steps (default: 5).')
+
+
+parser.add_argument('--kmer_len'	, '-k', dest = 'kmer', action = 'store', type = int, required = True, 
+					help = 'Length of the kmers processed by mnhn-tree-tools from the fastafile for the different calculation steps.')
+
+
+parser.add_argument('--threads', '-n', dest = 'threads', action = 'store', default = 4, type = int, 
+					help = 'Number of threads used by mnhn-tree-tools for the different calculation steps (default: 4).') #4 ou nbre de coeurs logiques ?
+
+
+parser.add_argument('--verbose', '-v', dest = 'verbose', action = 'store_true', default = False, type = 'string',
+					help = 'Shows progression messages in standard output.')
+
+
+parser.add_argument('--output', '-o', dest = 'output', action = 'store', type = 'string',
+					help = 'Specify output file name if needed.'
+
+args = parser.parse_args()
+
+
+## subfunctions
+
+def create_dir(path, verbose) :
+	"""
+	Checks if folder already exists or not to create it. If yes, aksks for permission to overwrite: otherwise it creates it.
+	path: path-like object
+	Command usage: create_folder(./temp)
+	"""
+	path = str(path)
+	if os.path.isdir(path) == True :
+		f"The directory {path} already exists, overwrite ? [O/n]"
+		input = input()
+		good_answer = False
+		#TODO: demander si boucle while sur l'input bonne idee ou mauvaise idee
+		while good_answer == False :
+			if input == "O" :
+				os.rmdir(path) 
+				os.mkdir(path)
+				good_answer = True
+			elif input == "n" :
+				good_answer = True
+			else :
+				f"Sorry, but '{input}'is not a valid answer."
+				f"The directory {path} already exists, overwrite ? [O/n]"
+	                	input = input()
+	else :
+		os.mkdir(path)
+	if args.verbose :
+        	f"the directory {output} has been created"
+
+def count_files(path) :
+	"""
+	Count files in a directory. Returns True if there are two files, the number of files otherwise.
+	path: path-like object
+	Command usage: count_files(./cluster1)
+	"""
+	path = str(path)
+	files = [name in name for os.listdir(path) if os.path.isfile(name) == True]
+	if len(files) == 2 :
+		return True
+	else :
+		return len(files)
+
+def iter_epsilon(args.fastafile, args.epsilonmin, args.epsilonmax, args.minpoints, args.output, args.verbose) :
+	eps1 = args.epsilonmin
+	eps2 = args.epsilonmax
+	test = False
+	while test != True :
+	        os.remove(./cluster/*)
+        	epsilon = round((eps1+eps2)/2)
+        	subprocess.Popen(['cluster_dbscan_PCA', args.fastafile, iter.join('.pca'), args.epsilon, args.minpoints, 'clusters/fastaCL', 'pca/pcaCl'],$
+        	test = count_files(./cluster)
+        	if test < 2 :
+                	eps1 = args.epsilonmin
+                	eps2 = epsilon
+        	elif test > 2 :
+                	eps1 = epsilon
+                	eps2 = args.epsilonmax
+		else :
+			if args.verbose == True :
+				f"First iteration done, with epsilon = {epsilon}."
+			with open(args.output, a) as f:
+				a.writeline(epsilon)
+			subprocess.Popen([]       , stdout = subprocess.PIPE)
+
+## main
+
+create_dir(ouput, args.verbose)
+subprocess.Popen(["cd", args.output])
+create_dir(clusters)
+if args.verbosity :
+	f"Going to {output} directory"
+if os.path.isfile("./counts.kmer") :
+	pass
+else :
+	if args.verbosity :
+                f"Counting kmers ..."
+	subprocess.Popen(['fasta2kmer', args.fatsafile, args.kmer, args.threads, '0', '>', 'counts.kmer'], stdout = subprocess.PIPE)
+
+subprocess.Popen(['kmer2pca', 'counts.kmer', 'run1.pca', 'run1.ev', args.kmer, args.threads]. stdout = subprocess.PIPE)
+#boucle sur les valeurs de epsilon pour sortir deux clusters :
+eps1 = args.epsilonmin
+eps2 = args.epsilonmax
+test = False
+
+##### louis-mael.gueguen@etu.univ-lyon1.fr beta04.05.2121

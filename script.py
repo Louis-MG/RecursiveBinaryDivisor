@@ -54,8 +54,7 @@ def create_dir(path, verbose) :
 	"""
 	path = str(path)
 	if os.path.isdir(path) == True :
-		f"The directory {path} already exists, overwrite ? [O/n]"
-		input = input()
+		input = input("The directory {path} already exists, overwrite ? [O/n]")
 		good_answer = False
 		while good_answer == False :
 			if input == "O" :
@@ -65,9 +64,7 @@ def create_dir(path, verbose) :
 			elif input == "n" :
  				good_answer = True
 			else :
-				f"Sorry, but '{input}'is not a valid answer."
-				f"The directory {path} already exists, overwrite ? [O/n]"
-	                	input = input()
+	                	input = input("Sorry, but '{input}'is not a valid answer.\nThe directory {path} already exists, overwrite ? [O/n]")
 	else :
 		os.mkdir(path)
 	if args.verbose :

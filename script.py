@@ -84,7 +84,7 @@ def count_files(path) :
 	else :
 		return len(files)
 
-def iter_epsilon(args.output, epsilonmin, epsilonmax, minpoints, verbose) :
+def iter_epsilon(epsilonmin, epsilonmax, minpoints, verbose) :
 	"""
 	Creates two new clusters from one by a dichotomic search of the right epsilon value. Creates two new fodlers for the new clusters. each name takes the prant's name and adds 1 and 2 respectively.
 	epsilonmin: minimum value of epsilon desired for the dichotomic search.
@@ -101,7 +101,7 @@ def iter_epsilon(args.output, epsilonmin, epsilonmax, minpoints, verbose) :
 	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0]
 	while test != True :
 		shutil.rmtree('cluster')#del the directory itself too, dont want that
-		p = subprocess.Popen(['cluster_dbscan_PCA', fasta, str(pca), str(epsilon), str(minpoints), 'cluster/fastaCL', 'cluster/ev'], stderr = subprocess.PIPE)
+		p = subprocess.Popen(['cluster_dbscan_pca', fasta, str(pca), str(epsilon), str(minpoints), 'cluster/fastaCL', 'cluster/ev'], stderr = subprocess.PIPE)
 		p.wait()
 		test = count_files('cluster')
 		if epsilon == epsilonmin or epsilon == epsilonmax :
@@ -214,36 +214,41 @@ command = " ".join(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(ar
 print(command) ##this command must be integrated in a if sentence to check if .pca already exists
 p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)
 p.wait()
-os.kmdir(cluster)
-eps1 = epsilonmin
-eps2 = epsilonmax
+print("PCA COMMAND SUCCESFUL")
+eps1 = args.epsilonmin
+eps2 = args.epsilonmax
+epsilonmin = args.epsilonmin
+epsilonmax = args.epsilonmax
 test = False
 epsilon = round((eps1+eps2)/2) #starts dichotomy in the middle of the given range of epsilon values
 curr_dir = os.getcwd().split("/")[-1]
-	while test != True :
-	shutil.rmtree('cluster')#del the directory itself too, dont want that
-	p = subprocess.Popen(['cluster_dbscan_PCA', args.fastafile, "counts.pca", str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'], stderr = subprocess.PIPE)
+print(curr_dir)
+while test != True :
+	if os.path.exists('cluster') : 
+		shutil.rmtree('cluster')#del the directory itself too, dont want that
+	os.mkdir('cluster')
+	p = subprocess.Popen(['cluster_dbscan_pca', args.fastafile, "counts.pca", str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'], stderr = subprocess.PIPE)
+	print("SCANNING ...")
 	p.wait()
 	test = count_files('cluster')
-	if epsilon == epsilonmin or epsilon == epsilonmax :
+	if epsilon == args.epsilonmin or epsilon == args.epsilonmax :
 		shutil.rmtree('cluster')
 		os.chdir("../")
-		if verbose :
+		if args.verbose :
 			print("The cluster is a leaf, leaving directory ...")
-	elif test < 2 :
+	elif test < 4 :
 		eps1 = epsilonmin
 		eps2 = epsilon
 		epsilon = math.floor((eps1+eps2)/2) #necessary to avoid case eps1 = 1 and eps2 = 2, round((1+2)/2) = 2, would result in infinite loop
-	elif test > 2 :
+	elif test > 4 :
 		eps1 = epsilon
 		eps2 = epsilonmax
 		epsilon = math.ceil((eps1+eps2)/2) #same case with eps1 = 9 and eps2 = 10
 	else :
 		if verbose == True :
-			print("Clustering of {curr_dir} done, with epsilon = {epsilon}.")
+			print("First clustering done, with epsilon = % s." % epsilon)
 	with open(parameters.join(["./", ".txt"]), "a") as f:
 		f.writelines([str(curr_dir), "\t", str(epsilon), "\n"])
-os.chdir("../")
 shutil.move("cluster/fastaCL1", "cluster1")
 shutil.move("cluster/ev1", "cluster1")
 shutil.move("cluster/fasstaCL2", "cluster2")
@@ -251,7 +256,7 @@ shutil.move("cluster/ev2", "cluster2")
 os.remove('cluster') #cleans things up 
 
 
-######TODO: 
+######TODO
 
 #subprocess to excecute the command to get the two first clusters
 source = os.getcwd() #gets the name of the parent folder
@@ -260,7 +265,7 @@ for i in folders :
 	os.chdir(i)
 	print(i)
 	extract_kmer(source, args.verbose) #takes parent counts.kmer, extracts kmers into a new counts.kmer 
-        extract_names(source, args.verbose) #extracts real sequences's names and inject them in new fasta file
+	extract_names(source, args.verbose) #extracts real sequences's names and inject them in new fasta file
 	command = " ".join(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.kmer), str(args.threads)])
 	print(command)
 	p = subprocess(command, shell = True, stderr=subprocess.PIPE)#produces the pca file

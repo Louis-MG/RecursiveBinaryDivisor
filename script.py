@@ -79,12 +79,12 @@ def count_files(path) :
 	"""
 	path = str(path)
 	files = [name for name in os.listdir(path) if os.path.isfile(name)]
-	if len(files) == 2 :
+	if len(files) == 4 :
 		return True
 	else :
 		return len(files)
 
-def iter_epsilon(epsilonmin, epsilonmax, minpoints, verbose) :
+def iter_epsilon(args.output, epsilonmin, epsilonmax, minpoints, verbose) :
 	"""
 	Creates two new clusters from one by a dichotomic search of the right epsilon value. Creates two new fodlers for the new clusters. each name takes the prant's name and adds 1 and 2 respectively.
 	epsilonmin: minimum value of epsilon desired for the dichotomic search.
@@ -101,7 +101,7 @@ def iter_epsilon(epsilonmin, epsilonmax, minpoints, verbose) :
 	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0]
 	while test != True :
 		shutil.rmtree('cluster')#del the directory itself too, dont want that
-		p = subprocess.Popen(['cluster_dbscan_PCA', fasta, pca, epsilon, minpoints, 'cluster/fastaCL', 'cluster/ev'], shell = True, stderr = subprocess.PIPE)
+		p = subprocess.Popen(['cluster_dbscan_PCA', fasta, str(pca), str(epsilon), str(minpoints), 'cluster/fastaCL', 'cluster/ev'], stderr = subprocess.PIPE)
 		p.wait()
 		test = count_files('cluster')
 		if epsilon == epsilonmin or epsilon == epsilonmax :
@@ -109,18 +109,18 @@ def iter_epsilon(epsilonmin, epsilonmax, minpoints, verbose) :
 			os.chdir("../")
 			if verbose :
 				print("The cluster is a leaf, leaving directory ...")
-		elif test < 2 :
+		elif test < 4 :
 			eps1 = epsilonmin
 			eps2 = epsilon
 			epsilon = math.floor((eps1+eps2)/2) #necessary to avoid case eps1 = 1 and eps2 = 2, round((1+2)/2) = 2, would result in infinite loop
-		elif test > 2 :
+		elif test > 4 :
 			eps1 = epsilon
 			eps2 = epsilonmax
 			epsilon = math.ceil((eps1+eps2)/2) #same case with eps1 = 9 and eps2 = 10
 		else :
 			if verbose == True :
 				print("Clustering of {curr_dir} done, with epsilon = {epsilon}.")
-			with open(parameters.join(["../",".txt"]), "a") as f: 
+			with open(parameters.join(["../", ".txt"]), "a") as f: 
 				f.writelines([str(curr_dir), "\t", str(epsilon), "\n"])
 			dir_1 = curr_dir.join(["../", ".1"]) #names of the next directories
 			dir_2 = curr_dir.join(["../", ".2"])
@@ -211,9 +211,44 @@ else :
 	p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
 	p.wait()
 command = " ".join(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.dimpca), str(args.threads)]) 
-print(command)
+print(command) ##this command must be integrated in a if sentence to check if .pca already exists
 p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)
 p.wait()
+os.kmdir(cluster)
+eps1 = epsilonmin
+eps2 = epsilonmax
+test = False
+epsilon = round((eps1+eps2)/2) #starts dichotomy in the middle of the given range of epsilon values
+curr_dir = os.getcwd().split("/")[-1]
+	while test != True :
+	shutil.rmtree('cluster')#del the directory itself too, dont want that
+	p = subprocess.Popen(['cluster_dbscan_PCA', args.fastafile, "counts.pca", str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'], stderr = subprocess.PIPE)
+	p.wait()
+	test = count_files('cluster')
+	if epsilon == epsilonmin or epsilon == epsilonmax :
+		shutil.rmtree('cluster')
+		os.chdir("../")
+		if verbose :
+			print("The cluster is a leaf, leaving directory ...")
+	elif test < 2 :
+		eps1 = epsilonmin
+		eps2 = epsilon
+		epsilon = math.floor((eps1+eps2)/2) #necessary to avoid case eps1 = 1 and eps2 = 2, round((1+2)/2) = 2, would result in infinite loop
+	elif test > 2 :
+		eps1 = epsilon
+		eps2 = epsilonmax
+		epsilon = math.ceil((eps1+eps2)/2) #same case with eps1 = 9 and eps2 = 10
+	else :
+		if verbose == True :
+			print("Clustering of {curr_dir} done, with epsilon = {epsilon}.")
+	with open(parameters.join(["./", ".txt"]), "a") as f:
+		f.writelines([str(curr_dir), "\t", str(epsilon), "\n"])
+os.chdir("../")
+shutil.move("cluster/fastaCL1", "cluster1")
+shutil.move("cluster/ev1", "cluster1")
+shutil.move("cluster/fasstaCL2", "cluster2")
+shutil.move("cluster/ev2", "cluster2")
+os.remove('cluster') #cleans things up 
 
 
 ######TODO: 
@@ -230,7 +265,7 @@ for i in folders :
 	print(command)
 	p = subprocess(command, shell = True, stderr=subprocess.PIPE)#produces the pca file
 	p.wait()
-	a, b = iter_epsilon(epsilonmin, epsilonmax, minpoints, output, verbose)
+	a, b = iter_epsilon(args.output, args.epsilonmin, args.epsilonmax, args.minpoints, args.verbose)
 	folders.append(a, b) #adds the new folders to the list so they are visited too
 	source = a.rstrip(".1")
 

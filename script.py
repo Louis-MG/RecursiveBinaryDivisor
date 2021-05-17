@@ -7,8 +7,8 @@ import argparse
 import os
 import shutil
 import subprocess
-import math
 import numpy as np
+import sys
 
 ## arguments
 #recap argument: fasta, kmer, epsilon min/max (range), dimpca, threads, verbose, minpoints, help, output
@@ -18,16 +18,19 @@ parser = argparse.ArgumentParser(description = 'Process fasta file, kmer length,
 parser.add_argument('--fasta_file', '-f', dest = 'fastafile', action = 'store', type = str, required = True, 
 				help = 'Name of the fasta file containing the sequences to cluster during the different steps.')
 
-parser.add_argument('--epsilon_min' , '-e1', dest = 'epsilonmin', action = 'store', type = int, required = True, 
-						help = 'minium value of epsilon used for the different calculation steps.') 
+parser.add_argument('--epsilon' , '-e', dest = 'epsilon', action = 'store', type = float, required = True, 
+						help = 'Minium value of epsilon used for the different calculation steps. Float.') 
 
-parser.add_argument('--epsilon_max' , '-e2', dest = 'epsilonmax', action = 'store', type = int, required = True, 
-						help = 'maximum value of epsilon used for the different calculation steps.') 
+#parser.add_argument('--epsilon_max' , '-e2', dest = 'epsilonmax', action = 'store', type = float, required = True, 
+#						help = 'Maximum value of epsilon used for the different calculation steps.') 
+
+parser.add_argument('--delta_epsilon', '-d', dest = 'delta', action = 'store', type = float, default = 0.001,
+						help = 'Minium difference between each epsilon of the dichotomy: when difference is inferior to delta, loop stops (default: 0.001).')
 
 parser.add_argument('--min_points', '-m', dest = 'minpoints', action = 'store', default = 3, type = int,
 			help = 'Minimun number of sequences to find to form a cluster during the clustering steps (default: 3).')
 
-parser.add_argument('--dim_pca', '-d', dest = 'dimpca', action = 'store', default = 5, type = int, 
+parser.add_argument('--dim_pca', '-p', dest = 'dimpca', action = 'store', default = 5, type = int, 
 				help = 'Number of dimensions to use from the pca during the calculation steps (default: 5).')
 
 parser.add_argument('--kmer_len', '-k', dest = 'kmer', action = 'store', type = int, required = True, 
@@ -54,7 +57,7 @@ def create_dir(path, verbose) :
 	"""
 	path = str(path)
 	if os.path.isdir(path) == True :
-		answer  = input("The directory {path} already exists, overwrite ? [O/n]")
+		answer  = input("The directory {} already exists, overwrite ? [O/n]".format(path))
 		good_answer = False
 		while good_answer == False :
 			if answer == "O" :
@@ -62,29 +65,30 @@ def create_dir(path, verbose) :
 				os.mkdir(path)
 				good_answer = True
 			elif answer == "n" :
- 				good_answer = True
+				good_answer = False
+				print("Directory not overwitten, choose another name.")
+				sys.exit()
 			else :
-	                	answer = input("Sorry, but '{answer}'is not a valid answer.\nThe directory {path} already exists, overwrite ? [O/n]")
+				answer = input("Sorry, but '{}'is not a valid answer.\nThe directory {} already exists, overwrite ? [O/n]\n".format(answer, answer))
 	else :
 		os.mkdir(path)
 		if args.verbose :
         		print("The directory  has been created.")
+		answer = 0
 	return answer
 
 def count_files(path) :
 	"""
-	Count files in a directory. Returns True if there are two files, the number of files otherwise.
+	Count files in a directory. Returns the number of files otherwise.
 	path: path-like object
 	Command usage: count_files(./cluster1)
+	p = subprocess.Popen(['ls','-lh'], stderr = subprocess.PIPE)
 	"""
 	path = str(path)
-	files = [name for name in os.listdir(path) if os.path.isfile(name)]
-	if len(files) == 4 :
-		return True
-	else :
-		return len(files)
+	files = [name for name in os.listdir(path) if os.path.isfile(os.path.join(path,name))]
+	return len(files)
 
-def iter_epsilon(epsilonmin, epsilonmax, minpoints, verbose) :
+def iter_epsilon(epsilonmin, epsilonmax, delta, minpoints, verbose, pca) :
 	"""
 	Creates two new clusters from one by a dichotomic search of the right epsilon value. Creates two new fodlers for the new clusters. each name takes the prant's name and adds 1 and 2 respectively.
 	epsilonmin: minimum value of epsilon desired for the dichotomic search.
@@ -101,25 +105,35 @@ def iter_epsilon(epsilonmin, epsilonmax, minpoints, verbose) :
 	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0]
 	while test != True :
 		shutil.rmtree('cluster')#del the directory itself too, dont want that
-		p = subprocess.Popen(['cluster_dbscan_pca', fasta, str(pca), str(epsilon), str(minpoints), 'cluster/fastaCL', 'cluster/ev'], stderr = subprocess.PIPE)
+		command = " ".join(['cluster_dbscan_pca', fasta, str(pca), str(epsilon), str(minpoints), 'cluster/fastaCL', 'cluster/ev'])
+		p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
 		p.wait()
 		test = count_files('cluster')
-		if epsilon == epsilonmin or epsilon == epsilonmax :
-			shutil.rmtree('cluster')
-			os.chdir("../")
-			if verbose :
-				print("The cluster is a leaf, leaving directory ...")
-		elif test < 4 :
-			eps1 = epsilonmin
-			eps2 = epsilon
-			epsilon = math.floor((eps1+eps2)/2) #necessary to avoid case eps1 = 1 and eps2 = 2, round((1+2)/2) = 2, would result in infinite loop
+		if test < 4 :
+			if abs(epsilon - (epsilonmin+eps2)/2) > delta : 
+				eps1 = eps1
+				eps2 = epsilon
+				epsilon = (eps1+eps2)/2 
+			else :  
+				shutil.rmtree('cluster')
+				os.chdir("../")
+				if verbose :
+					print("The cluster is a leaf, leaving directory ...")
+				break
 		elif test > 4 :
-			eps1 = epsilon
-			eps2 = epsilonmax
-			epsilon = math.ceil((eps1+eps2)/2) #same case with eps1 = 9 and eps2 = 10
+			if abs(epsilon - (epsilon+eps2)/2) > delta :
+				eps1 = epsilon
+				eps2 = eps2
+				epsilon = (eps1+eps2)/2
+			else :
+				shutil.rmtree('cluster')
+				os.chdir("../")
+				if verbose :
+					print("The cluster is a leaf, leaving directory ...")
+				break
 		else :
 			if verbose == True :
-				print("Clustering of {curr_dir} done, with epsilon = {epsilon}.")
+				print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epislon))
 			with open(parameters.join(["../", ".txt"]), "a") as f: 
 				f.writelines([str(curr_dir), "\t", str(epsilon), "\n"])
 			dir_1 = curr_dir.join(["../", ".1"]) #names of the next directories
@@ -132,7 +146,8 @@ def iter_epsilon(epsilonmin, epsilonmax, minpoints, verbose) :
 			shutil.move('cluster/ev1', dir_1)
 			shutil.move('cluster/fastaCL2', dir_2)
 			shutil.move('cluster/ev2', dir_2)
-			os.remove('cluster') #cleans things up 
+			os.remove('cluster') #cleans things up
+			break 
 	os.chdir("../")
 	return dir_1.lstrip("../"), dir_2.lstrip("../") #returns the two directories created, which contains respectively the newly created cluster 1 and 2 from the previous cluster
 
@@ -188,14 +203,14 @@ def extract_kmer(source, verbose) :
 
 ## main
 
-answer = create_dir(args.output, args.verbose) #create output dir
+user_answer = create_dir(args.output, args.verbose) #create output dir
 subprocess.Popen(['cp', args.fastafile, args.output], stdout = subprocess.PIPE)
 if args.verbose :
-	print("Going to {args.output} directory")
+	print("Going to {} directory".format(args.output))
 os.chdir(args.output)
 parameters = ".".join([str(args.kmer), str(args.epsilonmin), str(args.epsilonmax), str(args.minpoints), str(args.dimpca), "txt"]) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
 open(parameters, "w") #creates parameters text file
-if answer == "O" :
+if user_answer == "O" :
 	os.mkdir("cluster1") #creates the directories for the two first clusters
 	os.mkdir("cluster2")
 folders = ["cluster1", "cluster2"] #initialises the list of cluster directories to visit
@@ -215,40 +230,33 @@ print(command) ##this command must be integrated in a if sentence to check if .p
 p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)
 p.wait()
 print("PCA COMMAND SUCCESFUL")
-eps1 = args.epsilonmin
-eps2 = args.epsilonmax
-epsilonmin = args.epsilonmin
-epsilonmax = args.epsilonmax
-test = False
-epsilon = round((eps1+eps2)/2) #starts dichotomy in the middle of the given range of epsilon values
+epsilon = args.epsilon
+out_loop = False
 curr_dir = os.getcwd().split("/")[-1]
-print(curr_dir)
-while test != True :
+while out_loop != 4 :
 	if os.path.exists('cluster') : 
 		shutil.rmtree('cluster')#del the directory itself too, dont want that
 	os.mkdir('cluster')
-	p = subprocess.Popen(['cluster_dbscan_pca', args.fastafile, "counts.pca", str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'], stderr = subprocess.PIPE)
-	print("SCANNING ...")
+	command = " ".join(['cluster_dbscan_pca', args.fastafile, "counts.pca", str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'])
+	print('SCANNING ...')
+	print(command)
+	p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
 	p.wait()
-	test = count_files('cluster')
-	if epsilon == args.epsilonmin or epsilon == args.epsilonmax :
-		shutil.rmtree('cluster')
-		os.chdir("../")
-		if args.verbose :
-			print("The cluster is a leaf, leaving directory ...")
-	elif test < 4 :
-		eps1 = epsilonmin
-		eps2 = epsilon
-		epsilon = math.floor((eps1+eps2)/2) #necessary to avoid case eps1 = 1 and eps2 = 2, round((1+2)/2) = 2, would result in infinite loop
-	elif test > 4 :
-		eps1 = epsilon
-		eps2 = epsilonmax
-		epsilon = math.ceil((eps1+eps2)/2) #same case with eps1 = 9 and eps2 = 10
+	out_loop = count_files('cluster')
+	print(epsilon)
+	if out_loop > 4 :
+		epsilon += args.delta_epsilon 
+	elif out_loop == 0 :
+		print("0 cluster found, the paramters epislon and minpoints yield a density that is too high. Start over with a smaller epislon and/or minpoints.\n")
+	if out_loop == 1 :
+		###TODO: ajouter la dichotomie
 	else :
-		if verbose == True :
-			print("First clustering done, with epsilon = % s." % epsilon)
-	with open(parameters.join(["./", ".txt"]), "a") as f:
-		f.writelines([str(curr_dir), "\t", str(epsilon), "\n"])
+		if args.verbose :
+			print("First clustering done, with epsilon = {}.".format(epsilon))
+		with open(parameters.join(["./", ".txt"]), "a") as f:
+			f.writelines([str(curr_dir), "\t", str(epsilon), "\n"])
+print(out_loop)
+print('WTF going there')
 shutil.move("cluster/fastaCL1", "cluster1")
 shutil.move("cluster/ev1", "cluster1")
 shutil.move("cluster/fasstaCL2", "cluster2")
@@ -270,7 +278,7 @@ for i in folders :
 	print(command)
 	p = subprocess(command, shell = True, stderr=subprocess.PIPE)#produces the pca file
 	p.wait()
-	a, b = iter_epsilon(args.output, args.epsilonmin, args.epsilonmax, args.minpoints, args.verbose)
+	a, b = iter_epsilon(epsilonmin = args.epsilonmin, epsilonmax = args.epsilonmax, delta = args.delta, minpoints = args.minpoints, verbose = args.verbose, pca = args.dimpca)
 	folders.append(a, b) #adds the new folders to the list so they are visited too
 	source = a.rstrip(".1")
 

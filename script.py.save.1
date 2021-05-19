@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-#pyhton script to bi-cluster the sequences in fasta file using mnhn-tree-tools
+#pyhton script to cluster by succesive dychotomy the sequences in fasta file using mnhn-tree-tools
 
 ##FAIRE DU CODE BEAU ET FACILE A RELIRE
 
@@ -20,6 +20,7 @@ parser.add_argument('--fasta_file', '-f', dest = 'fastafile', action = 'store', 
 
 parser.add_argument('--epsilon' , '-e', dest = 'epsilon', action = 'store', type = float, required = True, 
 						help = 'Minium value of epsilon used for the different calculation steps. Float.') 
+
 
 parser.add_argument('--delta_epsilon', '-d', dest = 'delta', action = 'store', type = float, default = 0.001,
 						help = 'Minium difference between each epsilon of the dichotomy: when difference is inferior to delta, loop stops (default: 0.001).')
@@ -96,10 +97,9 @@ def iter_epsilon(epsilonmin, epsilonmax, delta, minpoints, verbose, pca) :
 	epsilon = epsilonmin
 	test = False
 	curr_dir = os.getcwd().split("/")[-1]
-	fasta = [i for i in os.listdir("./") if i.startswith("fasta")][0]
+	fasta = [i for i in os.listdir("./") if i.startswith("fastaCL")][0]
+	os.rename(fasta, "fasta.fst")
 	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0]
-	command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
-	parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 	out_loop = False
 	while out_loop != True :
 		shutil.rmtree('cluster')#del the directory itself too, dont want that
@@ -113,25 +113,19 @@ def iter_epsilon(epsilonmin, epsilonmax, delta, minpoints, verbose, pca) :
 			if verbose = true :
 				print("Clustering of {} yielded 1 cluster, consider using a smaller delta epsilon.".format(curr_dir))
 			with open(parameters.join(["../", ".txt"]), "a") as f:
-                                f.writelines([str(curr_dir), "\t", "-1", "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
-			shutil.rmtree("cluster") #cleans things up
-			return []
+                                f.writelines([str(curr_dir), "\t", "-1", "\t","NONE","\t","NONE", "\n"])
+			##TODO code erreur de -1 dans le fichier de sortie parameters, afficher le warning si verbeux
 		if test == 0 :
 			if verbose :
 				print("Clustering of {} yielded 0 cluster, consider using a smaller delta epsilon.".format(curr_dir)")
 			with open(parameters.join(["../", ".txt"]), "a") as f:
-                                f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
-			shutil.rmtree("cluster") #cleans things up
-			return []
+                                f.writelines([str(curr_dir), "\t", "-2","\t","NONE","\t","NONE", "\n"])
+			
 		else :
 			if verbose == True :
 				print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epislon))
-			command = " ".join(["grep", "-c", "'>'", "fastaCL1"]) #this line and the following count the number of sequences in  children files to store in in output file
-			son1 = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
-			command = " ".join(["grep", "-c","'>'", "fastaCL2"])
-			son2 = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 			with open(parameters.join(["../", ".txt"]), "a") as f: 
-				f.writelines([str(curr_dir), "\t", str(epsilon), "\t", parent, "\t", son1, "\t", son2, "\n"])
+				f.writelines([str(curr_dir), "\t", str(epsilon), "\t", "taillefils1", "\t","taillefils2", "\n"])
 			dir_1 = curr_dir.join(["../", ".1"]) #names of the next directories
 			dir_2 = curr_dir.join(["../", ".2"])
 			os.mkdir(dir_1) #creates the output directories of the new clusters
@@ -142,7 +136,7 @@ def iter_epsilon(epsilonmin, epsilonmax, delta, minpoints, verbose, pca) :
 			shutil.move('cluster/ev1', dir_1)
 			shutil.move('cluster/fastaCL2', dir_2)
 			shutil.move('cluster/ev2', dir_2)
-			shutil.rmtree("cluster") #cleans things up
+			os.remove('cluster') #cleans things up
 			os.chdir("../")
 			return [dir_1.lstrip("../"), dir_2.lstrip("../")] #returns the two directories created, which contains respectively the newly created cluster 1 and 2 from the previous cluster
 
@@ -244,26 +238,25 @@ while out_loop != 4 :
 		print("1 cluster found. Start over with a smaller epsilon")
 		sys.exit()
 	else :
-		##TODO: compter le nombre de sequences de fils1 fils2 orphan
+		command = " ".join([])
+		p = subprocess.Popen()
 		if args.verbose :
 			print("First clustering done, with epsilon = {}.".format(epsilon))
-		command = " ".join(["grep", "-c", "'>'", "fastaCL1"]) #this line and the following count the number of sequences in  children files to store in in output file
-		son1 = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
-		command = " ".join(["grep", "-c","'>'", "fastaCL2"])
-		son2 = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 		with open(parameters.join(["./", ".txt"]), "a") as f:
-			f.writelines([str(curr_dir), "\t", str(epsilon), "\t", parent, "\t", son1, "\t", son2,"\n"])
+			f.writelines([str(curr_dir), "\t", str(epsilon), "\n"])
 
-shutil.move("cluster/fastaCL1", "cluster.1") #move files to iniate first iterations
+shutil.move("cluster/fastaCL1", "cluster.1")
 shutil.move("cluster/ev1", "cluster.1")
 shutil.move("cluster/fastaCL2", "cluster.2")
 shutil.move("cluster/ev2", "cluster.2")
 
-files = [args.fastafile, "counts.kmer", "counts.pca", "counts.ev"] #moves the files to the folder of the first 
+files = [args.fastafile, "counts.kmer", "counts.pca", "counts.ev"]
 for i in files :
 	shutil.move(i, "cluster")
 
-# loop that goes through all the directories of different clusters to find new clusters
+######TODO
+
+#subprocess to excecute the command to get the two first clusters
 for i in folders :
 	os.chdir(i)
 	source = i.rstrip(".1").rstrip(".2")

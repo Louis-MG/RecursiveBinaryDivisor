@@ -85,7 +85,7 @@ def count_files(path) :
 	files = [name for name in os.listdir(path) if os.path.isfile(os.path.join(path,name))]
 	return len(files)
 
-def iter_epsilon(epsilonmin, epsilonmax, delta, minpoints, verbose, pca) :
+def iter_epsilon(epsilon, delta, minpoints, verbose, pca) :
 	"""
 	Creates two new clusters from one by a dichotomic search of the right epsilon value. Creates two new fodlers for the new clusters. each name takes the prant's name and adds 1 and 2 respectively.
 	epsilonmin: minimum value of epsilon desired for the dichotomic search.
@@ -110,7 +110,7 @@ def iter_epsilon(epsilonmin, epsilonmax, delta, minpoints, verbose, pca) :
 		if test > 4 :
 			espilon += args.delta
 		if test == 1 :
-			if verbose = true :
+			if verbose :
 				print("Clustering of {} yielded 1 cluster, consider using a smaller delta epsilon.".format(curr_dir))
 			with open(parameters.join(["../", ".txt"]), "a") as f:
                                 f.writelines([str(curr_dir), "\t", "-1", "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
@@ -118,7 +118,7 @@ def iter_epsilon(epsilonmin, epsilonmax, delta, minpoints, verbose, pca) :
 			return []
 		if test == 0 :
 			if verbose :
-				print("Clustering of {} yielded 0 cluster, consider using a smaller delta epsilon.".format(curr_dir)")
+				print("Clustering of {} yielded 0 cluster, consider using a smaller delta epsilon.".format(curr_dir))
 			with open(parameters.join(["../", ".txt"]), "a") as f:
                                 f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
 			shutil.rmtree("cluster") #cleans things up
@@ -138,10 +138,10 @@ def iter_epsilon(epsilonmin, epsilonmax, delta, minpoints, verbose, pca) :
 			os.mkdir(dir_2)
 			if verbose :
 				print("Moving files of the new cluster to their directory ...")
-			shutil.move('cluster/fastaCL1', dir_1) #moves the files to the next directories
-			shutil.move('cluster/ev1', dir_1)
-			shutil.move('cluster/fastaCL2', dir_2)
-			shutil.move('cluster/ev2', dir_2)
+			shutil.move('cluster/fastaCL-000', dir_1) #moves the files to the next directories
+			shutil.move('cluster/ev-000', dir_1)
+			shutil.move('cluster/fastaCL-001', dir_2)
+			shutil.move('cluster/ev-001', dir_2)
 			shutil.rmtree("cluster") #cleans things up
 			os.chdir("../")
 			return [dir_1.lstrip("../"), dir_2.lstrip("../")] #returns the two directories created, which contains respectively the newly created cluster 1 and 2 from the previous cluster
@@ -203,7 +203,7 @@ subprocess.Popen(['cp', args.fastafile, args.output], stdout = subprocess.PIPE)
 if args.verbose :
 	print("Going to {} directory".format(args.output))
 os.chdir(args.output)
-parameters = ".".join([str(args.kmer), str(args.epsilonmin), str(args.epsilonmax), str(args.minpoints), str(args.dimpca), "txt"]) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
+parameters = "_".join([str(args.kmer), str(args.epsilon), str(args.minpoints), str(args.dimpca), ".txt"]) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
 open(parameters, "w") #creates parameters text file
 if user_answer == "O" :
 	os.mkdir("cluster1") #creates the directories for the two first clusters
@@ -230,20 +230,21 @@ while out_loop != 4 :
 	if os.path.exists('cluster') : 
 		shutil.rmtree('cluster')#del the directory itself too, dont want that
 	os.mkdir('cluster')
-	command = " ".join(['cluster_dbscan_pca', args.fastafile, "counts.pca", str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'])
-	print('SCANNING ...')
+	command = " ".join(['cluster_dbscan_pca', args.fastafile, "counts.pca", str(args.dimpca), str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'])
+	print(command)
 	p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
 	p.wait()
 	out_loop = count_files('cluster')
+	print(out_loop)
 	if out_loop > 4 :
 		epsilon += args.delta 
 	elif out_loop == 0 :
 		print("0 cluster found. Start over with a smaller epislon and/or minpoints.\nReminder: you might not have any cluster in your data !")
 		sys.exit()
-	if out_loop == 1 :
+	elif out_loop == 1 :
 		print("1 cluster found. Start over with a smaller epsilon")
 		sys.exit()
-	else :
+	elif out_loop == 4 :
 		##TODO: compter le nombre de sequences de fils1 fils2 orphan
 		if args.verbose :
 			print("First clustering done, with epsilon = {}.".format(epsilon))
@@ -254,10 +255,10 @@ while out_loop != 4 :
 		with open(parameters.join(["./", ".txt"]), "a") as f:
 			f.writelines([str(curr_dir), "\t", str(epsilon), "\t", parent, "\t", son1, "\t", son2,"\n"])
 
-shutil.move("cluster/fastaCL1", "cluster.1") #move files to iniate first iterations
-shutil.move("cluster/ev1", "cluster.1")
-shutil.move("cluster/fastaCL2", "cluster.2")
-shutil.move("cluster/ev2", "cluster.2")
+shutil.move("cluster/fastaCL-000", "cluster.1") #move files to iniate first iterations
+shutil.move("cluster/ev-000", "cluster.1")
+shutil.move("cluster/fastaCL-001", "cluster.2")
+shutil.move("cluster/ev-001", "cluster.2")
 
 files = [args.fastafile, "counts.kmer", "counts.pca", "counts.ev"] #moves the files to the folder of the first 
 for i in files :

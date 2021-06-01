@@ -1,4 +1,4 @@
-1#!/usr/bin/env python3
+#!/usr/bin/env python3
 #pyhton script to bi-cluster the sequences in fasta file using mnhn-tree-tools
 
 ##FAIRE DU CODE BEAU ET FACILE A RELIRE
@@ -197,14 +197,15 @@ def extract_names(source, verbose) :
 	with open(curr_fasta, "r") as f :
 		lines = f.readlines()
 		index = [int(i.lstrip(">sequence_")) for i in lines if i.startswith(">")] #index of sequences from child fasta file we want in parent fasta file
+
 		n = 0
 		if verbose :
 			print("Writing names of the sequences ...")
 		for j in range(len(lines)) : #goes through lines of the new fasta file where we rename the seuquences
 			if lines[j].startswith(">") : #if line is a sequence id
-				print("ligne j",lines[j].rstrip())
-				print("index[n]", index[n])
-				print('nom de la sequence', names[index[n]])
+				#print("ligne j",lines[j].rstrip())
+				#print("index[n]", index[n])			#these three lines are for debugging
+				#print('nom de la sequence', names[index[n]])
 				lines[j] = names[index[n]] #changes sequence name at line j by the name at position [index[n]] which is the n_th position of the index, itself the  number of the sequence extracted from ">sequence_X". At each iteration of sequence name the n is incremented (+1)
 				n += 1
 	f.close()
@@ -227,7 +228,7 @@ def extract_kmer(source, verbose) :
 		lines = f.readlines()
 		index = [int(i.lstrip(">sequence_")) for i in lines if i.startswith(">")]# ">sequence_22" --> [22]
 	f.close()
-	counts = np.genfromtxt(str(source).join(["../","/counts.kmer"]), dtype = str) #generates a table of counts from the kmer file in source folder using numpy
+	counts = np.genfromtxt("../"+str(source)+"/counts.kmer", dtype = str) #generates a table of counts from the kmer file in source folder using numpy
 	sub_counts = counts[index, :] #selects the rows corresponding to our sequences
 	np.savetxt("./counts.kmer", sub_counts, fmt = '%s', delimiter = "\t") #saves in a new counts.kmer file
 	if verbose :
@@ -242,7 +243,7 @@ if args.verbose :
 os.chdir(args.output)
 parameters = "_".join([str(args.kmer), str(args.epsilon), str(args.delta),str(args.minpoints), str(args.dimpca)]) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
 with open("cluster_"+parameters+'.txt', "w") as f :
-	f.writelines(["cluster_name\tepsilon\tfather_size\tson1_size\tson2_size\n"])
+	f.writelines(["cluster_name\tepsilon\tfather_size\tchild1_size\tchild2_size\n"])
 os.mkdir("cluster.1") #creates the directories for the two first clusters
 os.mkdir("cluster.2")
 folders = ["cluster.1", "cluster.2"] #initialises the list of cluster directories to visit
@@ -285,7 +286,7 @@ while out_loop != 4 :
 		son1 = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 		command = "grep -c '>' cluster/fastaCL-001"
 		son2 = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
-		with open("../cluster_"+parameters+".txt", "a") as f:
+		with open("./cluster_"+parameters+".txt", "a") as f:
 			f.writelines(['cluster', "\t", str(epsilon), "\t", parent, "\t", son1, "\t", son2,"\n"])
 
 os.rename("cluster/fastaCL-000", "cluster/fastaCL1.fst")
@@ -310,28 +311,37 @@ with open("seq_tree_table_"+parameters, "w") as f : # writes names of the sequen
 
 # loop that goes through all the directories of different clusters to find new clusters
 for i in folders :
+	if args.verbose :
+		print("Going to cluster directory {}.".format(i))
 	os.chdir(i)
 	if i.endswith(".1") :
 		source = re.sub(r"\.1$", "", i)
 	elif i.endswith(".2"): 
 		source = re.sub(r"\.2$", "", i)
-	if args.verbose :
-		print("Going to cluster directory {}.".format(i))
 	extract_kmer(source, args.verbose) #takes parent counts.kmer, extracts kmers into a new counts.kmer 
 	extract_names(source, args.verbose) #extracts real sequences's names and inject them in new fasta file
-	command = " ".join(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.dimpca), str(args.threads)])
-	p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)#produces the pca file
-	p.wait()
-	a = iter_epsilon(epsilon = args.epsilon, delta = args.delta, dimpca = args.dimpca, minpoints = args.minpoints, verbose = args.verbose)
-	if len(a) == 2 :
-		folders.extend(a) #adds the new folders to the list so they are visited too
 	with open([i for i in os.listdir("./") if i.startswith("fasta")][0], "r") as f :
 		lines = f.readlines()
 		sequences = [i for i in lines if i.startswith(">")] #list of the sequences names in the fasta of the currently visited folder
+	if len(sequences) > args.minsize :
+		command = " ".join(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.dimpca), str(args.threads)])
+		p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)#produces the pca file
+		p.wait()
+		a = iter_epsilon(epsilon = args.epsilon, delta = args.delta, dimpca = args.dimpca, minpoints = args.minpoints, verbose = args.verbose)
+		if len(a) == 2 :
+			folders.extend(a) #adds the new folders to the list so they are visited too
 	table = np.genfromtxt('../seq_tree_table_'+parameters, dtype = str) #numpy table of elements, n lines and 2 columns 
 	for j in range(len(table[:,0])) :
 		if table[j,0]+"\n" in sequences : #if the sequences name of the j line is in the sequences list:
 			table[j,1] = i
 	np.savetxt("../seq_tree_table_"+parameters, table, fmt = '%s', delimiter = "\t")
 	os.chdir('../')
+
+command = "awk '{x=2; print $x}' "+"{}".format("seq_tree_table_"+parameters)+" | sort | uniq -c"
+output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True)
+
+with open("seq_tree_table_summary.txt", "w") as f:
+	f.writelines(output)
+
+
 ##### louis-mael.gueguen@etu.univ-lyon1.fr alpha10.05.2021

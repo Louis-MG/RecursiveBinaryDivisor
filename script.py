@@ -307,7 +307,7 @@ with open("cluster/"+fasta, "r") as f : #saves the names of the sequences
 	reference = [i.rstrip('\n').split(' ')[0]+"\t"+"cluster\n" for i in lines if i.startswith(">")]
 	f.close()
 
-with open("seq_tree_table_"+parameters, "w") as f : # writes names of the sequences in the table referencing sequences and their respective last branch level
+with open("sequence_"+parameters, "w") as f : # writes names of the sequences in the table referencing sequences and their respective last branch level
 	f.writelines(reference)
 	f.close()
 
@@ -332,17 +332,17 @@ for i in folders :
 		a = iter_epsilon(epsilon = args.epsilon, delta = args.delta, dimpca = args.dimpca, minpoints = args.minpoints, verbose = args.verbose)
 		if len(a) == 2 :
 			folders.extend(a) #adds the new folders to the list so they are visited too
-	table = np.genfromtxt('../seq_tree_table_'+parameters, dtype = str) #numpy table of elements, n lines and 2 columns 
+	table = np.genfromtxt('../sequence_'+parameters, dtype = str) #numpy table of elements, n lines and 2 columns 
 	for j in range(len(table[:,0])) :
 		if table[j,0]+"\n" in sequences : #if the sequences name of the j line is in the sequences list:
 			table[j,1] = i
-	np.savetxt("../seq_tree_table_"+parameters, table, fmt = '%s', delimiter = "\t")
+	np.savetxt("../sequence_"+parameters, table, fmt = '%s', delimiter = "\t")
 	os.chdir('../')
 
-command = "awk '{x=2; print $x}' "+"{}".format("seq_tree_table_"+parameters)+" | sort | uniq -c"
+command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters)+" | sort | uniq -c"
 output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True)
 
-with open("seq_tree_table_summary.txt", "w") as f:
+with open("sequence_summary.txt", "w") as f:
 	f.writelines(output)
 
 

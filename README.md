@@ -1,4 +1,4 @@
-This program outputs two tabulated text files and several folders. Each folder corresponds to a cluster; it contains: the fasta file 
+This program outputs 3 tabulated files and several folders. Each folder corresponds to a cluster; it contains: the fasta file 
 containing the sequences, the kmer counts of the fasta, the eigen values file and the pca file obtained from the count file. 
 
 The first tabulated text file is named cluster_param.txt, where param is the chain of carachters of the main arguments (kmer length, 
@@ -10,14 +10,15 @@ Epsilon  is either a positive float (the real epsilon) or a negative integer tha
 was found in the cluster_name, and -2 indicates that one cluster was detected in cluster_name; this subcluster is named and put in a 
 folder that will not be visited by the algorithm. 
 
-The second tabulated text file is sequence_parameters, where parameters is written as described above. It contains the names of the 
-sequences and the respective name of the last cluster it belonged to. 
+The second tabulated file is sequence_parameters, where parameters is written as described above. It contains the names of the 
+sequences and the respective name of the last cluster it belonged to. Exemple given:
+
+>sequenceXXXXXXXX cluster
+>sequenceYYYYYYYY cluster.1.2.1
+
+The third file is a summary of sequence_parameters, conveniently named sequence_summary.txt . It contains the number of sequences 
+remaining in a cluster. In the case of a leaf, the number corresponds to the number of sequence in the leaf. In case of a branch, the 
+number corresponds to the sequences fromn the custer that were not assigned to a sub-cluster; these are orphans.  
 
 
-
-Next and problems, 28/05/2021 : 
-
-.2 clusters are not visible in sequence file, source of bug ?
-Must put cluster of epsilon_code = -1 in a folder/fasta but must not be visited, and disclose size.
-
-louis-mael.gueguen@etu.univ-lyon1.fr
+###louis-mael.gueguen@etu.univ-lyon1.fr

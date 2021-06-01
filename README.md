@@ -13,7 +13,7 @@ folder that will not be visited by the algorithm.
 The second tabulated file is sequence_parameters, where parameters is written as described above. It contains the names of the 
 sequences and the respective name of the last cluster it belonged to. Exemple given:
 
->sequenceXXXXXXXX cluster
+>sequenceXXXXXXXX cluster\n
 >sequenceYYYYYYYY cluster.1.2.1
 
 The third file is a summary of sequence_parameters, conveniently named sequence_summary.txt . It contains the number of sequences 

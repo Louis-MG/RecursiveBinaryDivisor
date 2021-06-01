@@ -237,10 +237,12 @@ def extract_kmer(source, verbose) :
 ## main
 
 user_answer = create_dir(args.output, args.verbose) #create output dir
-subprocess.Popen(['cp', args.fastafile, args.output], stdout = subprocess.PIPE)
+p = subprocess.Popen(['cp', args.fastafile, args.output], stderr = subprocess.PIPE)
+p.wait()
 if args.verbose :
 	print("Going to {} directory".format(args.output))
 os.chdir(args.output)
+fasta = [i for i in os.listdir("./") if i.endswith(".fst")][0]
 parameters = "_".join([str(args.kmer), str(args.epsilon), str(args.delta),str(args.minpoints), str(args.dimpca)]) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
 with open("cluster_"+parameters+'.txt', "w") as f :
 	f.writelines(["cluster_name\tepsilon\tfather_size\tchild1_size\tchild2_size\n"])
@@ -249,14 +251,14 @@ os.mkdir("cluster.2")
 folders = ["cluster.1", "cluster.2"] #initialises the list of cluster directories to visit
 if args.verbose :
 	print("Counting kmers and saving in a primary counts file ...")
-command = " ".join(['fasta2kmer', str(args.fastafile), str(args.kmer), str(args.threads), '0', '>', './counts.kmer'])
+command = " ".join(['fasta2kmer', fasta, str(args.kmer), str(args.threads), '0', '>', './counts.kmer'])
 p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
 p.wait()
 command = " ".join(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.dimpca), str(args.threads)]) 
 p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)
 p.wait()
 epsilon = args.epsilon
-command = " ".join(["grep", "-c", "'>'", args.fastafile]) #this line and the following count the number of sequences in  children files to store in in output file
+command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
 parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 out_loop = False
 curr_dir = os.getcwd().split("/")[-1]
@@ -266,7 +268,7 @@ while out_loop != 4 :
 	if os.path.exists('cluster') : 
 		shutil.rmtree('cluster')#del the directory itself too, dont want that
 	os.mkdir('cluster')
-	command = " ".join(['cluster_dbscan_pca', args.fastafile, "counts.pca", str(args.dimpca), str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'])
+	command = " ".join(['cluster_dbscan_pca', fasta, "counts.pca", str(args.dimpca), str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'])
 	p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
 	p.wait()
 	out_loop = count_files('cluster')
@@ -296,11 +298,11 @@ os.rename("cluster/fastaCL-001", "cluster/fastaCL2.fst")
 shutil.move("cluster/fastaCL2.fst", "cluster.2")
 shutil.move("cluster/ev-001", "cluster.2")
 
-files = [args.fastafile, "counts.kmer", "counts.pca", "counts.ev"] #moves the files to the folder of the first 
+files = [fasta, "counts.kmer", "counts.pca", "counts.ev"] #moves the files to the folder of the first 
 for i in files :
 	shutil.move(i, "cluster")
 
-with open("cluster/"+args.fastafile, "r") as f : #saves the names of the sequences
+with open("cluster/"+fasta, "r") as f : #saves the names of the sequences
 	lines = f.readlines()
 	reference = [i.rstrip('\n').split(' ')[0]+"\t"+"cluster\n" for i in lines if i.startswith(">")]
 	f.close()

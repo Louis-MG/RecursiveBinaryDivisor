@@ -14,6 +14,7 @@ The second tabulated file is sequence_parameters, where parameters is written as
 sequences and the respective name of the last cluster it belonged to. Exemple given:
 
 sequenceXXXXXXXX cluster
+
 sequenceYYYYYYYY cluster.1.2.1
 
 The third file is a summary of sequence_parameters, conveniently named sequence_summary.txt . It contains the number of sequences 

@@ -10,6 +10,7 @@ import subprocess
 import numpy as np
 import sys
 from textwrap import dedent
+import re
 
 ## arguments
 #recap argument: fasta, kmer, epsilon min/max (range), dimpca, threads, verbose, minpoints, help, output
@@ -145,14 +146,14 @@ def iter_epsilon(epsilon, dimpca, delta, minpoints, verbose) :
 			with open("../cluster_"+parameters+".txt", "a") as f:
                                 f.writelines([str(curr_dir), "\t", "-1", "\t", parent,  "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
 			shutil.rmtree("cluster") #cleans things up
-			return [curr_dir] #returns list of length = 1, directory of leaf
+			return [] #returns list of length = 1, directory of leaf
 		elif test == 0 :
 			if verbose :
 				print("Clustering of {} yielded 0 cluster, consider using a smaller delta epsilon.".format(curr_dir))
 			with open("../cluster_"+parameters+".txt", "a") as f:
                                 f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
 			shutil.rmtree("cluster") #cleans things up
-			return [curr_dir] #returns list of length = 1, directory of leaf
+			return [] #returns list of length = 1, directory of leaf
 		elif test == 4 :
 			if verbose == True :
 				print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epsilon))
@@ -175,23 +176,23 @@ def iter_epsilon(epsilon, dimpca, delta, minpoints, verbose) :
 			shutil.move('cluster/fastaCL2.fst', dir_2)
 			shutil.move('cluster/ev-001', dir_2)
 			shutil.rmtree("cluster") #cleans things up
-			return [curr_dir, dir_1.lstrip("../"), dir_2.lstrip("../")] #returns the two directories created, which contains respectively the newly created cluster 1 and 2 from the previous cluster
+			return [dir_1.lstrip("../"), dir_2.lstrip("../")] #returns the two directories created, which contains respectively the newly created cluster 1 and 2 from the previous cluster
 
 def extract_names(source, verbose) :
 	"""
-	Extracts the names of the sequences from the parent fasta file located in source. Index is given by the outptu of extract_kmer().
+	Extracts the names of the sequences from the parent fasta file located in source. Index is given by the output of extract_kmer().
 	source: parent folder where to find the parent fasta file. Path.
 	verbose = boolean
 	Command usage: extract_name(/path/to/parent/folder, True)
 	"""
 	if verbose  :
 		print("Extracting names of the sequences in the fasta file ...")
-	old_fasta = [i for i in os.listdir(str(source).join(["../","/"])) if i.endswith(".fst")][0] #selects the parent fasta file
+	old_fasta = [i for i in os.listdir("../"+source) if i.endswith(".fst")][0] #selects the parent fasta file
 	curr_fasta = [i for i in os.listdir("./") if i.endswith(".fst")][0] #selects the child fasta file
 	old_fasta = "../" + source+ "/" + old_fasta 
 	with open(old_fasta, "r") as f :
 		lines = f.readlines()
-		names  = [i for i in lines if i.startswith(">")] #list of sequences nqmes from parent file, looks like ">ESHIH49767"
+		names  = [i.split(' ')[0].rstrip()+"\n" for i in lines if i.startswith(">")] #list of sequences names from parent file, looks like ">ESHIH49767"
 	f.close()
 	with open(curr_fasta, "r") as f :
 		lines = f.readlines()
@@ -199,13 +200,16 @@ def extract_names(source, verbose) :
 		n = 0
 		if verbose :
 			print("Writing names of the sequences ...")
-		for j in range(len(lines)) : #goes through lines by index value
+		for j in range(len(lines)) : #goes through lines of the new fasta file where we rename the seuquences
 			if lines[j].startswith(">") : #if line is a sequence id
-				lines[j] = names[index[n]] #changes sequence name corresponding to index
+				print("ligne j",lines[j].rstrip())
+				print("index[n]", index[n])
+				print('nom de la sequence', names[index[n]])
+				lines[j] = names[index[n]] #changes sequence name at line j by the name at position [index[n]] which is the n_th position of the index, itself the  number of the sequence extracted from ">sequence_X". At each iteration of sequence name the n is incremented (+1)
 				n += 1
 	f.close()
 	with open(curr_fasta, "w") as f :
-		f.writelines(lines)
+		f.writelines(lines) #replaces the lines by new ones
 	f.close()
 
 def extract_kmer(source, verbose) :
@@ -297,10 +301,10 @@ for i in files :
 
 with open("cluster/"+args.fastafile, "r") as f : #saves the names of the sequences
 	lines = f.readlines()
-	reference = [i.rstrip('\n')+"\t"+"cluster\n" for i in lines if i.startswith(">")]
+	reference = [i.rstrip('\n').split(' ')[0]+"\t"+"cluster\n" for i in lines if i.startswith(">")]
 	f.close()
 
-with open("seq_tree_table"+parameters, "w") as f : # writes names of the sequences in the table referencing sequences and their respective last branch level
+with open("seq_tree_table_"+parameters, "w") as f : # writes names of the sequences in the table referencing sequences and their respective last branch level
 	f.writelines(reference)
 	f.close()
 
@@ -308,9 +312,9 @@ with open("seq_tree_table"+parameters, "w") as f : # writes names of the sequenc
 for i in folders :
 	os.chdir(i)
 	if i.endswith(".1") :
-		source = i.rstrip(".1")
+		source = re.sub(r"\.1$", "", i)
 	elif i.endswith(".2"): 
-		source = i.rstrip(".2")
+		source = re.sub(r"\.2$", "", i)
 	if args.verbose :
 		print("Going to cluster directory {}.".format(i))
 	extract_kmer(source, args.verbose) #takes parent counts.kmer, extracts kmers into a new counts.kmer 
@@ -319,14 +323,15 @@ for i in folders :
 	p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)#produces the pca file
 	p.wait()
 	a = iter_epsilon(epsilon = args.epsilon, delta = args.delta, dimpca = args.dimpca, minpoints = args.minpoints, verbose = args.verbose)
-	folders.extend(a[1:]) #adds the new folders to the list so they are visited too
+	if len(a) == 2 :
+		folders.extend(a) #adds the new folders to the list so they are visited too
 	with open([i for i in os.listdir("./") if i.startswith("fasta")][0], "r") as f :
 		lines = f.readlines()
-		sequences = [i for i in lines if i.startswith(">")]
-	table = np.genfromtxt('../seq_tree_table'+parameters, dtype = str)
-	for i in range(len(table[:,0])) :
-		if table[i,0]+" "+table[i,1]+"\n" in sequences :
-			table[i,2] = a[0]
-	np.savetxt("../seq_tree_table"+parameters, table, fmt = '%s', delimiter = "\t")
+		sequences = [i for i in lines if i.startswith(">")] #list of the sequences names in the fasta of the currently visited folder
+	table = np.genfromtxt('../seq_tree_table_'+parameters, dtype = str) #numpy table of elements, n lines and 2 columns 
+	for j in range(len(table[:,0])) :
+		if table[j,0]+"\n" in sequences : #if the sequences name of the j line is in the sequences list:
+			table[j,1] = i
+	np.savetxt("../seq_tree_table_"+parameters, table, fmt = '%s', delimiter = "\t")
 	os.chdir('../')
 ##### louis-mael.gueguen@etu.univ-lyon1.fr alpha10.05.2021

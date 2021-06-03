@@ -7,7 +7,8 @@ division cannot be done.
 
 * Dependencies:
 
-Make you have a GCC compiler version >= 4.9.2
+Make sure you have a GCC compiler version >= 4.9.2
+
 For MNHN-Tree-Tools:
 
 ```
@@ -33,10 +34,12 @@ For python 3.4.2:
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
 python get-pip.py --python-version 3.4.2
 
+#in case of installation troubles, refer to https://pip.pypa.io/en/stable/installing/
+#python packages required:
+
 pip install numpy
 pip install regex
 
-#in case of installation troubles, refer to https://pip.pypa.io/en/stable/installing/
 ```
 # Usage
 
@@ -53,12 +56,13 @@ containing the sequences, the kmer counts of the fasta, the eigen values file an
 * The first tabulated text file is named cluster_param.txt, where param is the chain of carachters of the main arguments (kmer length, 
 epsilon, delta epsilon, minpoints, dimpca). Its header and content is the following:
 
-cluster_name	epsilon	father_size	son1_size	son2_size
-cluster	1.2	1000	400	500
-cluster.1	1.5	400	200	100	
-cluster.2	-1	500	450	NONE
-cluster.1.1	-2	200	NONE	NONE	
-CLUSTER.1.2	0.9	100	30	20
+|cluster_name|epsilon|father_size|son1_size|son2_size|
+|------------|:-----:|:---------:|:-------:|:-------:|
+|cluster|1.2|1000|400|500|
+|cluster.1|1.5|400|200|100|	
+|cluster.2|-1|500|450|NONE|
+|cluster.1.1|-2|200|NONE|NONE|
+|cluster.1.2|0.9|100|30|20|
 
 Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: -1 signifies no sub-cluster 
 was found in the cluster_name, and -2 indicates that one cluster was detected in cluster_name; this subcluster is named and put in a 

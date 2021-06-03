@@ -57,7 +57,7 @@ containing the sequences, the kmer counts of the fasta, the eigen values file an
 epsilon, delta epsilon, minpoints, dimpca). Its header and content is the following:
 
 |cluster_name|epsilon|father_size|son1_size|son2_size|
-|------------|:-----:|:---------:|:-------:|:-------:|
+|:----------:|:-----:|:---------:|:-------:|:-------:|
 |cluster|1.2|1000|400|500|
 |cluster.1|1.5|400|200|100|	
 |cluster.2|-1|500|450|NONE|
@@ -78,6 +78,11 @@ sequenceYYYYYYYY cluster.1.2.1
 * The third file is a summary of sequence_parameters, conveniently named sequence_summary.txt . It contains the number of sequences 
 remaining in a cluster. In the case of a leaf, the number corresponds to the number of sequence in the leaf. In case of a branch, the 
 number corresponds to the sequences fromn the custer that were not assigned to a sub-cluster; these are orphans.  
+
+|:-:|:--------:|
+|240|cluster|
+|30|cluster.1.2|
+|12|cluster.2|
 
 
 ###louis-mael.gueguen@etu.univ-lyon1.fr

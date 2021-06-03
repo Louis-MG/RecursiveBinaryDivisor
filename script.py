@@ -47,11 +47,11 @@ parser.add_argument('--delta_epsilon', '-d', dest = 'delta', action = 'store', t
 parser.add_argument('--min_points', '-m', dest = 'minpoints', action = 'store', default = 3, type = int,
 			help = 'Minimun number of sequences to find to form a cluster during the clustering steps (default: 3).')
 
-parser.add_argument('--dim_pca', '-p', dest = 'dimpca', action = 'store', default = 5, type = int, 
-				help = 'Number of dimensions to use from the pca during the calculation steps (default: 5).')
+parser.add_argument('--dim_pca', '-p', dest = 'dimpca', action = 'store', default = 7, type = int, 
+				help = 'Number of dimensions to use from the pca during the calculation steps (default: 7).')
 
-parser.add_argument('--kmer_len', '-k', dest = 'kmer', action = 'store', type = int, required = True, 
-		help = 'Length of the kmers processed by mnhn-tree-tools from the fastafile for the different calculation steps.')
+parser.add_argument('--kmer_len', '-k', dest = 'kmer', action = 'store', type = int, default = 5, 
+		help = 'Length of the kmers processed by mnhn-tree-tools from the fastafile for the different calculation steps. Default: 5')
 
 parser.add_argument('--threads', '-n', dest = 'threads', action = 'store', default = 4, type = int, 
 			help = 'Number of threads used by mnhn-tree-tools for the different calculation steps (default: 4).') 

@@ -1,3 +1,7 @@
+This script uses the mnhn-tree-tools (Haschka, Ponger, Escude, Mozziconacci) in a specific way. Uses cluster_dbscan_pca to divide each cluster in two clusters, until further 
+division cannot be done. 
+
+
 This program outputs 3 tabulated files and several folders. Each folder corresponds to a cluster; it contains: the fasta file 
 containing the sequences, the kmer counts of the fasta, the eigen values file and the pca file obtained from the count file. 
 
@@ -5,6 +9,11 @@ The first tabulated text file is named cluster_param.txt, where param is the cha
 epsilon, delta epsilon, minpoints, dimpca). Its header and content is the following:
 
 cluster_name	epsilon	father_size	son1_size	son2_size
+cluster	1.2	1000	400	500
+cluster.1	1.5	400	200	100	
+cluster.2	-1	500	450	NONE
+cluster.1.1	-2	200	NONE	NONE	
+CLUSTER.1.2	0.9	100	30	20
 
 Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: -1 signifies no sub-cluster 
 was found in the cluster_name, and -2 indicates that one cluster was detected in cluster_name; this subcluster is named and put in a 

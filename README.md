@@ -39,7 +39,6 @@ python get-pip.py --python-version 3.4.2
 
 pip install numpy
 pip install regex
-
 ```
 # Usage
 
@@ -79,6 +78,7 @@ sequenceYYYYYYYY cluster.1.2.1
 remaining in a cluster. In the case of a leaf, the number corresponds to the number of sequence in the leaf. In case of a branch, the 
 number corresponds to the sequences fromn the custer that were not assigned to a sub-cluster; these are orphans.  
 
+|Sequences left|cluster_name|
 |:-:|:--------:|
 |240|cluster|
 |30|cluster.1.2|

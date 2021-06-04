@@ -152,14 +152,14 @@ def iter_epsilon(epsilon, dimpca, delta, minpoints, verbose) :
 			shutil.move("cluster/ev-000", "../"+curr_dir+".0")
 			shutil.move("cluster/fastaCL0.fst", "../"+curr_dir+".0")
 			shutil.rmtree("cluster") #cleans things up
-			return [] #returns list of length = 1, directory of leaf
+			return [curr_dir+".0"] #returns list of length = 1, directory of leaf
 		elif test == 0 :
 			if verbose >= 1:
 				print("Clustering of {} yielded 0 cluster, consider using a smaller delta epsilon.".format(curr_dir))
 			with open("../cluster_"+parameters+".txt", "a") as f:
                                 f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
 			shutil.rmtree("cluster") #cleans things up
-			return [] #returns list of length = 1, directory of leaf
+			return [] #returns list of length = 0
 		elif test == 4 :
 			if verbose == True :
 				print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epsilon))
@@ -205,7 +205,6 @@ def extract_names(source, verbose) :
 	with open(curr_fasta, "r") as f :
 		lines = f.readlines()
 		index = [int(i.lstrip(">sequence_")) for i in lines if i.startswith(">")] #index of sequences from child fasta file we want in parent fasta file
-
 		n = 0
 		if verbose >= 1:
 			print("Writing names of the sequences ...")
@@ -255,6 +254,7 @@ with open("cluster_"+parameters+'.txt', "w") as f :
 os.mkdir("cluster.1") #creates the directories for the two first clusters
 os.mkdir("cluster.2")
 folders = ["cluster.1", "cluster.2"] #initialises the list of cluster directories to visit
+other_folders = [] #initiates the list of clusters yielded by a single cluster in main loop
 if args.verbose >= 1 :
 	print("Counting kmers and saving in a primary counts file ...")
 command = " ".join(['fasta2kmer', fasta, str(args.kmer), str(args.threads), '0', '>', './counts.kmer'])
@@ -265,7 +265,7 @@ p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)
 p.wait()
 epsilon = args.epsilon
 command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
-parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
+parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True).rstrip()
 out_loop = False
 curr_dir = os.getcwd().split("/")[-1]
 while out_loop != 4 :
@@ -283,7 +283,7 @@ while out_loop != 4 :
 	elif out_loop == 0 :
 		print("0 cluster found. Start over with a smaller epislon and/or minpoints.\nReminder: you might not have any cluster in your data !")
 		sys.exit()
-	elif out_loop == 1 :
+	elif out_loop == 2 :
 		print("1 cluster found. Start over with a smaller epsilon")
 		sys.exit()
 	elif out_loop == 4 :
@@ -331,7 +331,7 @@ for i in folders :
 	elif i.endswith(".2"): 
 		source = re.sub(r"\.2$", "", i)
 	extract_kmer(source, args.verbose) #takes parent counts.kmer, extracts kmers into a new counts.kmer 
-	extract_names(source, args.verbose) #extracts real sequences's names and inject them in new fasta file
+	extract_names(source, args.verbose) #extracts real sequences's names and inject them 
 	with open([i for i in os.listdir("./") if i.startswith("fasta")][0], "r") as f :
 		lines = f.readlines()
 		sequences = [i for i in lines if i.startswith(">")] #list of the sequences names in the fasta of the currently visited folder
@@ -344,6 +344,24 @@ for i in folders :
 		a = iter_epsilon(epsilon = args.epsilon, delta = args.delta, dimpca = args.dimpca, minpoints = args.minpoints, verbose = args.verbose)
 		if len(a) == 2 :
 			folders.extend(a) #adds the new folders to the list so they are visited too
+		elif len(a) == 1 :
+			other_folders.extend(a) #adds .0 folders to a specific list to update the sequences`s cluster belongings
+	if args.verbose >= 2 :
+		print("Updating the last cluster belonging of sequences ...")
+	table = np.genfromtxt('../sequence_'+parameters, dtype = str) #numpy table of elements, n lines and 2 columns 
+	for j in range(len(table[:,0])) :
+		if table[j,0]+"\n" in sequences : #if the sequences name of the j line is in the sequences list:
+			table[j,1] = i
+	np.savetxt("../sequence_"+parameters, table, fmt = '%s', delimiter = "\t")
+	os.chdir('../')
+
+for i in other_folders : #visits the .0 clusters to update sequence belonging
+	os.chdir(i)
+	source = source = re.sub(r"\.0$", "", i)
+	extract_names(source, args.verbose) 
+	with open([i for i in os.listdir("./") if i.startswith("fasta")][0], "r") as f :
+		lines = f.readlines()
+		sequences = [i for i in lines if i.startswith(">")] #list of the sequences names in the fasta of the currently visited folder
 	if args.verbose >= 2 :
 		print("Updating the last cluster belonging of sequences ...")
 	table = np.genfromtxt('../sequence_'+parameters, dtype = str) #numpy table of elements, n lines and 2 columns 

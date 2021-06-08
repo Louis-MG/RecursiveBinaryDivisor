@@ -316,7 +316,7 @@ with open("cluster/"+fasta, "r") as f : #saves the names of the sequences
 	if args.verbose >= 2 :
 		print("Reading sequences names ...")
 
-with open("sequence_"+parameters, "w") as f : # writes names of the sequences in the table referencing sequences and their respective last branch level
+with open("sequence_"+parameters+".txt", "w") as f : # writes names of the sequences in the table referencing sequences and their respective last branch level
 	if args.verbose >= 2 :
 		print("Writing reference sequences names in the sequence_{}.txt".format(parameters))
 	f.writelines(reference)
@@ -348,11 +348,11 @@ for i in folders :
 			other_folders.extend(a) #adds .0 folders to a specific list to update the sequences`s cluster belongings
 	if args.verbose >= 2 :
 		print("Updating the last cluster belonging of sequences ...")
-	table = np.genfromtxt('../sequence_'+parameters, dtype = str) #numpy table of elements, n lines and 2 columns 
+	table = np.genfromtxt('../sequence_'+parameters+".txt", dtype = str) #numpy table of elements, n lines and 2 columns 
 	for j in range(len(table[:,0])) :
 		if table[j,0]+"\n" in sequences : #if the sequences name of the j line is in the sequences list:
 			table[j,1] = i
-	np.savetxt("../sequence_"+parameters, table, fmt = '%s', delimiter = "\t")
+	np.savetxt("../sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
 	os.chdir('../')
 
 for i in other_folders : #visits the .0 clusters to update sequence belonging
@@ -364,17 +364,17 @@ for i in other_folders : #visits the .0 clusters to update sequence belonging
 		sequences = [i for i in lines if i.startswith(">")] #list of the sequences names in the fasta of the currently visited folder
 	if args.verbose >= 2 :
 		print("Updating the last cluster belonging of sequences ...")
-	table = np.genfromtxt('../sequence_'+parameters, dtype = str) #numpy table of elements, n lines and 2 columns 
+	table = np.genfromtxt('../sequence_'+parameters+".txt", dtype = str) #numpy table of elements, n lines and 2 columns 
 	for j in range(len(table[:,0])) :
 		if table[j,0]+"\n" in sequences : #if the sequences name of the j line is in the sequences list:
 			table[j,1] = i
-	np.savetxt("../sequence_"+parameters, table, fmt = '%s', delimiter = "\t")
+	np.savetxt("../sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
 	os.chdir('../')
 
 if args.verbose >= 2 :
 	print("Saving summary of sequence_{}.txt".format(parameters))
 
-command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters)+" | sort | uniq -c"
+command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c"
 output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True)
 
 with open("sequence_summary.txt", "w") as f:

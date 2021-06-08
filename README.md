@@ -16,7 +16,7 @@ sudo apt-get install git build-essential libpng-dev libsdl2-dev liblapack-dev li
 
 git clone https://github.com/Louis-MG/MNHN-Tree-Tools.git
 
-cd mnhn-tree-tools
+cd MNHN-Tree-Tools
 mkdir bin
 make all
 cd bin

@@ -39,6 +39,10 @@ python get-pip.py --python-version 3.4.2
 
 pip install numpy
 pip install regex
+pip install shutils
+pip install subprocess
+pip install argparse
+
 ```
 # Usage
 

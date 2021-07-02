@@ -1,8 +1,6 @@
 # Summary
 
-This script uses the mnhn-tree-tools (Haschka, Ponger, Escude, Mozziconacci) in a specific way. Uses cluster_dbscan_pca to divide each cluster in two clusters, until further 
-division cannot be done. 
-
+The Recursive Binary Divisor recursiverly splits clusters in two until it cannot annymore. For this, the  script uses the mnhn-tree-tools (Haschka T. 2021) in a specific way. It first operates the count of kmers, the applies a pca on these counts. The projection is used as a support for dbscan. The epsilon paramter of dbscan is increased until a binary division occures. Then it adds the resulting clusters to a list. The tool visits and expands the list at the same time.  
 # Installation
 
 * Dependencies:
@@ -21,7 +19,7 @@ mkdir bin
 make all
 cd bin
 
-# make MNHN-TREE-TOOLS available from any folder ( this is temporary, you
+# make MNHN-Tree-Tools available from any folder ( this is temporary, you
 # may modify your .bashrc and similar files to make this permanent
 export PATH=$PATH:$PWD
 ```

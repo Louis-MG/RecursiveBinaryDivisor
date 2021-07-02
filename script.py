@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 #pyhton script to bi-cluster the sequences in fasta file using mnhn-tree-tools
 
-##FAIRE DU CODE BEAU ET FACILE A RELIRE
-
 import argparse
 import os
 import shutil
@@ -13,12 +11,12 @@ from textwrap import dedent
 import re
 
 ## arguments
-#recap argument: fasta, kmer, epsilon min/max (range), dimpca, threads, verbose, minpoints, help, output
+#recap argument: fasta, kmer, epsilon, delta epsilon, dimpca, threads, verbose (2 levels), minpoints,  output, help
 
 parser = argparse.ArgumentParser(prog = 'script.py', formatter_class = argparse.RawDescriptionHelpFormatter, description = dedent('''\
 			Process fasta file, kmer length, epsilon arguments. PCA dimensions and numer of threads optionnal.'
 
-			This program outputs two tabulated text files and several folders. Each folder corresponds to a cluster; it contains: 
+			This program outputs three tabulated text files and several folders. Each folder corresponds to a cluster; it contains: 
 			 - the fasta file containing the sequences
 			 - the kmer counts of the fasta
 			 - the eigen values file and the pca file obtained from the count file. 
@@ -32,7 +30,16 @@ parser = argparse.ArgumentParser(prog = 'script.py', formatter_class = argparse.
 			 - -1 signifies no sub-cluster was found in the cluster_name
 			 - -2 indicates that one cluster was detected in cluster_name; this subcluster is named and put in a folder that will not be visited by the algorithm.
 			
-			The second tabulated text file is sequence_parameters, where parameters is written as described above. It contains the names of the sequences and the respective name of the last cluster it belonged to. 
+			The second tabulated text file is sequence_parameters.txt, where parameters is written as described above. It contains the names of the sequences and the respective name of the last cluster it belonged to.
+
+			>sequence_name cluster_name
+
+			The third tabulated text file is sequence_summary.txt. It contains the number of sequences in each cluster after the complete distribution. If the cluster is a leaf, the number is the number of sequences in the cluster. If the cluster is a branch the number is the number of sequences that are orphans of the next division. 
+			For 1000 sequences :			
+
+			200 cluster
+			500 cluster.1
+			300 cluster.2
 			'''))
 
 parser.add_argument('--fasta_file', '-f', dest = 'fastafile', action = 'store', type = str, required = True, 
@@ -62,7 +69,7 @@ parser.add_argument('--verbose', '-v', dest = 'verbose', action = 'count', defau
 parser.add_argument('--output', '-o', dest = 'output', action = 'store', type = str, required = True, 
 							help = 'Specifies output file name if needed.')
 
-parser.add_argument('--minsize', '-s', dest = 'minsize', action = 'store', type = int, default = 3, 
+parser.add_argument('--minsize', '-s', dest = 'minsize', action = 'store', type = int, default = 50, 
 							help = 'Specifies minimum size of a cluster to try to subcluster it.')
 
 args = parser.parse_args()
@@ -79,7 +86,7 @@ def create_dir(path, verbose) :
 	if os.path.isdir(path) == True :
 		answer  = input("The directory {} already exists, overwrite ? [O/n]".format(path))
 		good_answer = False
-		while good_answer == False :
+		while good_answer == False : #loops until user responds either O (capitalised for to be conservative) or n.
 			if answer == "O" :
 				shutil.rmtree(path) 
 				os.mkdir(path)
@@ -94,15 +101,12 @@ def create_dir(path, verbose) :
 		os.mkdir(path)
 		if args.verbose >= 1:
         		print("The directory  has been created.")
-		answer = 0
-	return 
 
 def count_files(path) :
 	"""
 	Count files in a directory. Returns the number of files otherwise.
 	path: path-like object
 	Command usage: count_files(./cluster1)
-	p = subprocess.Popen(['ls','-lh'], stderr = subprocess.PIPE)
 	"""
 	path = str(path)
 	files = [name for name in os.listdir(path) if os.path.isfile(os.path.join(path,name))]
@@ -114,18 +118,18 @@ def iter_epsilon(epsilon, dimpca, delta, minpoints, verbose) :
 	epsilon: value of epsilon desired for the split..
 	minpoints: minimum number of points (which are pca projections of sequences) in the epsilon radius required to create a new cluster.
 	verbose: (optionnal) more information about the process in the standard output, aka the console.
+	Command usage: iter_epsilon(0.8, 7, 0.01, 3, 1)
 	"""
 	curr_dir = os.getcwd().split("/")[-1]
-	fasta = [i for i in os.listdir("./") if i.startswith("fasta")][0]
-	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0]
+	fasta = [i for i in os.listdir("./") if i.startswith("fasta")][0] #selects the fasta file in the current directory
+	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0] #selects counts.pca
 	with open(fasta, 'r') as f :
 		lines = f.readlines()
 		sequences = [i.rstrip('\n') for i in lines if i.startswith(">")]
 	command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
 	parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 	out_loop = False
-	old_epsilon = 0
-	while out_loop != True :
+	while out_loop != True : #allow to loop until a return
 		if verbose >= 1 :
 			print(epsilon)
 		if os.path.exists("cluster") :
@@ -134,15 +138,15 @@ def iter_epsilon(epsilon, dimpca, delta, minpoints, verbose) :
 		command = " ".join(['cluster_dbscan_pca', fasta, str(pca), str(dimpca), str(epsilon), str(minpoints), 'cluster/fastaCL', 'cluster/ev'])
 		if verbose >= 2 :
 			print(command)
-		p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
+		p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE) #finds clusters
 		p.wait()
-		test = count_files('cluster')
+		test = count_files('cluster') #counts clusters
 		if test > 4 :
-			epsilon += args.delta
+			epsilon += args.delta #increases epsilon if more than 2 clusters
 		elif test == 3 :
 			print("3 files in 'cluster/', incoherent behavior from dbscan. Exit.")
-			sys.exit()
-		elif test == 2 :
+			sys.exit()#just in case, should not happened
+		elif test == 2 : #if one cluster if found, saved as .0
 			if verbose >= 1 :
 				print("Clustering of {} yielded 1 cluster, consider using a smaller delta epsilon.".format(curr_dir))
 			with open("../cluster_"+parameters+".txt", "a") as f:
@@ -152,7 +156,7 @@ def iter_epsilon(epsilon, dimpca, delta, minpoints, verbose) :
 			shutil.move("cluster/ev-000", "../"+curr_dir+".0")
 			shutil.move("cluster/fastaCL0.fst", "../"+curr_dir+".0")
 			shutil.rmtree("cluster") #cleans things up
-			return [curr_dir+".0"] #returns list of length = 1, directory of leaf
+			return [curr_dir+".0"] #returns list of length = 1, directory of a leaf
 		elif test == 0 :
 			if verbose >= 1:
 				print("Clustering of {} yielded 0 cluster, consider using a smaller delta epsilon.".format(curr_dir))
@@ -160,7 +164,7 @@ def iter_epsilon(epsilon, dimpca, delta, minpoints, verbose) :
                                 f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
 			shutil.rmtree("cluster") #cleans things up
 			return [] #returns list of length = 0
-		elif test == 4 :
+		elif test == 4 : #if 2 clusters are found, saved as .1 and .2 and added to the list for further split
 			if verbose == True :
 				print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epsilon))
 			command = "grep -c '>' cluster/fastaCL-000" #this line and the following count the number of sequences in  children files to store in in output file
@@ -191,7 +195,7 @@ def extract_names(source, verbose) :
 	Extracts the names of the sequences from the parent fasta file located in source. Index is given by the output of extract_kmer().
 	source: parent folder where to find the parent fasta file. Path.
 	verbose = boolean
-	Command usage: extract_name(/path/to/parent/folder, True)
+	Command usage: extract_name(/path/to/parent/folder, 1)
 	"""
 	if verbose >= 1 :
 		print("Extracting names of the sequences in the fasta file ...")
@@ -223,8 +227,7 @@ def extract_kmer(source, verbose) :
 	Extracts the kmers corresponding to the sequences in the cluster's fasta file from the primary kmer file. Avoids repeating a demanding computation task.
 	The extraction is done prior to clustering and pca.
 	source: parent folder where to find the parent kmer file.
-	verbose: boolean
-	Command usage: extract_kmer(/path/to/parent/folder, True)
+	Command usage: extract_kmer(/path/to/parent/folder, 1)
 	"""
 	if verbose >= 1 :
 		print("Extracting counts of the sequences in the fasta file ...")
@@ -238,10 +241,10 @@ def extract_kmer(source, verbose) :
 	np.savetxt("./counts.kmer", sub_counts, fmt = '%s', delimiter = "\t") #saves in a new counts.kmer file
 	if verbose >= 2 :
 		print("Sub-counts saved in counts.kmer")
-
+	
 ## main
 
-user_answer = create_dir(args.output, args.verbose) #create output dir
+create_dir(args.output, args.verbose) #create output dir
 p = subprocess.Popen(['cp', args.fastafile, args.output], stderr = subprocess.PIPE)
 p.wait()
 if args.verbose >= 1 :

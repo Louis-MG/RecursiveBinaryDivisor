@@ -61,14 +61,11 @@ epsilon, delta epsilon, minpoints, dimpca). Its header and content is the follow
 |:----------:|:-----:|:---------:|:-------:|:-------:|
 |cluster|1.2|1000|400|500|
 |cluster.1|1.5|400|200|100|	
-|cluster.2|-1|500|450|NONE|
-|cluster.1.1|-2|200|NONE|NONE|
+|cluster.1.1|-1|200|NONE|NONE|
 |cluster.1.2|0.9|100|30|20|
 
-Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: -1 signifies no sub-cluster 
-was found in the cluster_name, and -2 indicates that one cluster was detected in cluster_name; this subcluster is named and put in a 
-folder that will not be visited by the algorithm. 
-
+Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: -1 signifies no or just one sub-cluster was found.
+ 
 * The second tabulated file is sequence_parameters, where parameters is written as described above. It contains the names of the 
 sequences and the respective name of the last cluster it belonged to. Exemple given:
 

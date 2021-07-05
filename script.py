@@ -51,7 +51,7 @@ parser.add_argument('--epsilon', '-e', dest = 'epsilon', action = 'store', type 
 parser.add_argument('--delta_epsilon', '-d', dest = 'delta', action = 'store', type = float, default = 0.001,
 						help = 'Minium difference between each epsilon of the dichotomy: when difference is inferior to delta, loop stops (default: 0.001).')
 
-paser.add_argument('--growth', '-g', dest = 'growth', action = 'store', default = False, type = bool, 
+parser.add_argument('--growth', '-g', dest = 'growth', action = 'store', default = False, type = bool, 
 						help = 'Gives directionnality of epsilon: increase or decrease')
 
 parser.add_argument('--min_points', '-m', dest = 'minpoints', action = 'store', default = 3, type = int,
@@ -147,15 +147,27 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 		p.wait()
 		test = count_files('cluster') #counts clusters
 		if test > 4 :
-			epsilon += args.delta #increases epsilon if more than 2 clusters
-			shutil.rmtree("cluster") #cleans things up
+			if args.growth :
+				epsilon += args.delta #increases epsilon if more than 2 clusters
+				shutil.rmtree("cluster") #cleans things up
+			else : 
+				shutil.rmtree("cluster") #if epsilon decreases, this is a dead-end and the program ends
+				if verbose >= 1 :
+					print("Clustering of {} yielded more than 2 clusters.".format(curr_dir))
+				with open("../cluster_"+parameters+".txt", "a") as f :
+					f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code
+				sys.exit()
 		if test < 4 :
-			if verbose >= 1:
-				print("Clustering of {} yielded less than 2 clusters.".format(curr_dir))
-			with open("../cluster_"+parameters+".txt", "a") as f:
-                                f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
-			shutil.rmtree("cluster") #cleans things up
-			return [] #returns list of length = 0
+			if args.growth :
+				if verbose >= 1:
+					print("Clustering of {} yielded less than 2 clusters.".format(curr_dir))
+				with open("../cluster_"+parameters+".txt", "a") as f:
+                        	        f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
+				shutil.rmtree("cluster") #cleans things up
+				return [] #returns list of length = 0
+			else :
+				delta -= args.delta #decreases epsilon if less than 2 clusters
+				shutil.rmtree("cluster")
 		elif test == 4 : #if 2 clusters are found, saved as .1 and .2 and added to the list for further split
 			if verbose == True :
 				print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epsilon))

@@ -30,7 +30,7 @@ For python 3.4.2:
 #if you dont have pip installed already (UNIX):
 
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-python get-pip.py --python-version 3.4.2
+python get-pip.py 
 
 #in case of installation troubles, refer to https://pip.pypa.io/en/stable/installing/
 #python packages required:

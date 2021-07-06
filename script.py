@@ -103,7 +103,7 @@ def create_dir(path, verbose) :
 	else :
 		os.mkdir(path)
 		if args.verbose >= 1:
-        		print("The directory  has been created.")
+        		print("The directory has been created.")
 
 def count_files(path) :
 	"""
@@ -158,6 +158,13 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 					f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code
 				sys.exit()
 		if test < 4 :
+			if test <= 0 :
+				if verbose >= 1 :
+					print('Clustering of {} yielded 0 cluster'.format(curr_dir))
+				with open("../cluster_"+parameters+".txt", "a") as f:
+					f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code $
+				shutil.rmtree("cluster") #cleans things up
+				return([])
 			if args.growth :
 				if verbose >= 1:
 					print("Clustering of {} yielded less than 2 clusters.".format(curr_dir))
@@ -166,7 +173,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 				shutil.rmtree("cluster") #cleans things up
 				return [] #returns list of length = 0
 			else :
-				delta -= args.delta #decreases epsilon if less than 2 clusters
+				epsilon -= args.delta #decreases epsilon if less than 2 clusters
 				shutil.rmtree("cluster")
 		elif test == 4 : #if 2 clusters are found, saved as .1 and .2 and added to the list for further split
 			if verbose == True :
@@ -286,15 +293,23 @@ while out_loop != 4 :
 	p.wait()
 	out_loop = count_files('cluster')
 	if out_loop > 4 :
-		epsilon += args.delta 
+		if args.growth : 
+			epsilon += args.delta
+		else :
+			print("Clustering of {} yielded more than two clusters.".format(args.fastafile))
+			shutil.rmtree("cluster")
+			sys.exit() 
 	elif out_loop < 4 : #if less than 2 clusters thus 4 files found:
-		print("Less than 2 clusters found. Start over with a smaller epislon and/or minpoints.\nReminder: you might have only one cluster in your data !")
-		with open("./cluster_"+parameters+".txt", "a") as f:
-			f.writelines(['cluster', "\t", str(epsilon), "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
-		sys.exit()
+		if args.growth :
+			print("Clustering of {} yielded less than 2 clusters.".format(args.fasta))
+			with open("./cluster_"+parameters+".txt", "a") as f:
+				f.writelines(['cluster', "\t", str(epsilon), "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
+			sys.exit()
+		else :
+			epsilon -= args.delta
 	elif out_loop == 4 :
 		if args.verbose >= 1 :
-			print("First clustering done, with epsilon = {}.".format(epsilon))
+			print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epsilon))
 		command = "grep -c '>' cluster/fastaCL-000" #this line and the following count the number of sequences in  children files to store in in output file
 		son1 = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 		command = "grep -c '>' cluster/fastaCL-001"

@@ -286,7 +286,7 @@ while out_loop != 4 :
 	if args.verbose >= 1 :
 		print(epsilon)
 	if os.path.exists('cluster') : 
-		shutil.rmtree('cluster')#del the directory itself too, dont want that
+		shutil.rmtree('cluster')
 	os.mkdir('cluster')
 	command = " ".join(['cluster_dbscan_pca', fasta, "counts.pca", str(args.dimpca), str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'])
 	p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
@@ -341,6 +341,8 @@ with open("sequence_"+parameters+".txt", "w") as f : # writes names of the seque
 		print("Writing reference sequences names in the sequence_{}.txt".format(parameters))
 	f.writelines(reference)
 
+leaf = [] #list of leavesn clusters to update sequences_parameters.txt
+
 # loop that goes through all the directories of different clusters to find new clusters
 for i in folders :
 	if args.verbose >= 1 :
@@ -364,8 +366,10 @@ for i in folders :
 		a = iter_epsilon(epsilon = args.epsilon, delta = args.delta, growth = True, dimpca = args.dimpca, minpoints = args.minpoints, verbose = args.verbose)
 		if len(a) == 2 :
 			folders.extend(a) #adds the new folders to the list so they are visited too
-		elif len(a) == 1 :
-			other_folders.extend(a) #adds .0 folders to a specific list to update the sequences`s cluster belongings
+		else :
+			leaf.append(i)
+	else :
+		leaf.append(i)
 	if args.verbose >= 2 :
 		print("Updating the last cluster belonging of sequences ...")
 	table = np.genfromtxt('../sequence_'+parameters+".txt", dtype = str) #numpy table of elements, n lines and 2 columns 
@@ -374,6 +378,12 @@ for i in folders :
 			table[j,1] = i
 	np.savetxt("../sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
 	os.chdir('../')
+
+table = np.genfromtxt('./sequence_'+parameters+".txt", dtype = str) #numpy table of elements, n lines and 2 columns 
+for j in range(len(table[:,1])) :
+	if table[j,1] not in leaf : #if the sequences name of the j line is in the sequences list:
+		table[j,1] = table[j,1]+'.0'
+np.savetxt("./sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
 
 if args.verbose >= 2 :
 	print("Saving summary of sequence_{}.txt".format(parameters))
@@ -384,5 +394,5 @@ output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE
 with open("sequence_summary.txt", "w") as f:
 	f.writelines(output)
 
-#TODO: check cleaning of the .0, add the decrease mechanism, change output for orphans
+#TODO: change output for orphans
 ##### louis-mael.gueguen@etu.univ-lyon1.fr alpha10.05.2021

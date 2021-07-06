@@ -383,7 +383,7 @@ table = np.genfromtxt('./sequence_'+parameters+".txt", dtype = str) #numpy table
 for j in range(len(table[:,1])) :
 	if table[j,1] not in leaf : #if the sequences name of the j line is in the sequences list:
 		table[j,1] = table[j,1]+'.0'
-np.savetxt("./sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
+np.savetxt("./sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t") #file is updated with .0 added to oprhan sequences
 
 if args.verbose >= 2 :
 	print("Saving summary of sequence_{}.txt".format(parameters))

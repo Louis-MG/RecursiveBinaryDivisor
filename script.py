@@ -158,7 +158,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 					f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code
 				sys.exit()
 		if test < 4 :
-			if test <= 0 :
+			if epsilon <= 0 :
 				if verbose >= 1 :
 					print('Clustering of {} yielded 0 cluster'.format(curr_dir))
 				with open("../cluster_"+parameters+".txt", "a") as f:
@@ -171,7 +171,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 				with open("../cluster_"+parameters+".txt", "a") as f:
                         	        f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
 				shutil.rmtree("cluster") #cleans things up
-				return [] #returns list of length = 0
+				return([]) #returns list of length = 0
 			else :
 				epsilon -= args.delta #decreases epsilon if less than 2 clusters
 				shutil.rmtree("cluster")
@@ -300,8 +300,15 @@ while out_loop != 4 :
 			shutil.rmtree("cluster")
 			sys.exit() 
 	elif out_loop < 4 : #if less than 2 clusters thus 4 files found:
+		if epsilon <= 0 :
+			if args.verbose >= 1 :
+				print('Clustering of {} yielded 0 cluster'.format(args.fastafile))
+			with open("../cluster_"+parameters+".txt", "a") as f:
+				f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code $
+			shutil.rmtree("cluster") #cleans things up
+			sys.exit()
 		if args.growth :
-			print("Clustering of {} yielded less than 2 clusters.".format(args.fasta))
+			print("Clustering of {} yielded less than 2 clusters.".format(args.fastafile))
 			with open("./cluster_"+parameters+".txt", "a") as f:
 				f.writelines(['cluster', "\t", str(epsilon), "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
 			sys.exit()

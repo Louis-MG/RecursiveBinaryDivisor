@@ -11,7 +11,7 @@ from textwrap import dedent
 import re
 
 ## arguments
-#recap argument: fasta, kmer, epsilon, delta epsilon, dimpca, threads, verbose (2 levels), minpoints,  output, help
+#recap argument: fasta, kmer, epsilon, delta epsilon, growth,  dimpca, threads, verbose (2 levels), minpoints,  output, help
 
 parser = argparse.ArgumentParser(prog = 'script.py', formatter_class = argparse.RawDescriptionHelpFormatter, description = dedent('''\
 			Process fasta file, kmer length, epsilon arguments. PCA dimensions and numer of threads optionnal.'
@@ -51,8 +51,8 @@ parser.add_argument('--epsilon', '-e', dest = 'epsilon', action = 'store', type 
 parser.add_argument('--delta_epsilon', '-d', dest = 'delta', action = 'store', type = float, default = 0.001,
 						help = 'Minium difference between each epsilon of the dichotomy: when difference is inferior to delta, loop stops (default: 0.001).')
 
-parser.add_argument('--growth', '-g', dest = 'growth', action = 'store', default = False, type = bool, 
-						help = 'Gives directionnality of epsilon: increase or decrease')
+parser.add_argument('--growth', '-g', dest = 'growth', action = 'count', default = 0, 
+						help = 'Gives directionnality of epsilon: increase or decrease. Default: 0.')
 
 parser.add_argument('--min_points', '-m', dest = 'minpoints', action = 'store', default = 3, type = int,
 			help = 'Minimun number of sequences to find to form a cluster during the clustering steps (default: 3).')
@@ -107,7 +107,7 @@ def create_dir(path, verbose) :
 
 def count_files(path) :
 	"""
-	Count files in a directory. Returns the number of files otherwise.
+	Count and returns the number of files in a directory.
 	path: path-like object
 	Command usage: count_files(./cluster1)
 	"""
@@ -117,28 +117,28 @@ def count_files(path) :
 
 def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 	"""
-	Creates two new clusters from one by a dichotomic search of the right epsilon value. Creates two new fodlers for the new clusters. each name takes the prant's name and adds 1 and 2 respectively.
+	Creates two new clusters from one by search of the right epsilon value. Creates two new fodlers for the new clusters. Each name takes the parent's name and adds .1 and .2 respectively.
 	epsilon: value of epsilon desired for the split.
 	delta: value of the incremental value.
-	growth: boolean for growth or degrowth/ increase or decrease of the epsilon parameter.
+	growth: 1 or 0 for increase or decrease of the epsilon parameter.
 	minpoints: minimum number of points (which are pca projections of sequences) in the epsilon radius required to create a new cluster.
-	verbose: (optionnal) more information about the process in the standard output, aka the console.
-	Command usage: iter_epsilon(0.8, 0.01, 7, True, 3, 1)
+	verbose: (optionnal) more information about the process in the standard output. 3 levels.
+	Command usage: iter_epsilon(0.8, 0.01, 7, 1, 3, 1)
 	"""
 	curr_dir = os.getcwd().split("/")[-1]
 	fasta = [i for i in os.listdir("./") if i.startswith("fasta")][0] #selects the fasta file in the current directory
 	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0] #selects counts.pca
 	with open(fasta, 'r') as f :
-		lines = f.readlines()
+		lines = f.readlines() #stores sequences 
 		sequences = [i.rstrip('\n') for i in lines if i.startswith(">")]
 	command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
 	parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 	out_loop = False
-	while out_loop != True : #allow to loop until a return
+	while out_loop != True : #allows to loop until a return
 		if verbose >= 1 :
 			print(epsilon)
 		if os.path.exists("cluster") :
-			shutil.rmtree('cluster')#del the directory itself too, dont want that
+			shutil.rmtree('cluster')#del the directory from the previous try if it exists
 		os.mkdir("cluster")
 		command = " ".join(['cluster_dbscan_pca', fasta, str(pca), str(dimpca), str(epsilon), str(minpoints), 'cluster/fastaCL', 'cluster/ev'])
 		if verbose >= 2 :
@@ -147,27 +147,27 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 		p.wait()
 		test = count_files('cluster') #counts clusters
 		if test > 4 :
-			if args.growth :
+			if args.growth == 1 :
 				epsilon += args.delta #increases epsilon if more than 2 clusters
 				shutil.rmtree("cluster") #cleans things up
 			else : 
-				shutil.rmtree("cluster") #if epsilon decreases, this is a dead-end and the program ends
+				shutil.rmtree("cluster") #if epsilon decreases, this is a dead-end and the program stops
 				if verbose >= 1 :
 					print("Clustering of {} yielded more than 2 clusters.".format(curr_dir))
 				with open("../cluster_"+parameters+".txt", "a") as f :
 					f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code
 				sys.exit()
-		if test < 4 :
-			if epsilon <= 0 :
+		if test < 4 : #if less than 2 clusters found
+			if epsilon <= 0 : #stops the program if epsilon is null or negative
 				if verbose >= 1 :
 					print('Clustering of {} yielded 0 cluster'.format(curr_dir))
 				with open("../cluster_"+parameters+".txt", "a") as f:
 					f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code $
 				shutil.rmtree("cluster") #cleans things up
 				return([])
-			if args.growth :
+			if args.growth == 1 :
 				if verbose >= 1:
-					print("Clustering of {} yielded less than 2 clusters.".format(curr_dir))
+					print("Clustering of {} yielded less than 2 clusters.".format(curr_dir)) #if growth, dead-end so program stops
 				with open("../cluster_"+parameters+".txt", "a") as f:
                         	        f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
 				shutil.rmtree("cluster") #cleans things up
@@ -225,9 +225,6 @@ def extract_names(source, verbose) :
 			print("Writing names of the sequences ...")
 		for j in range(len(lines)) : #goes through lines of the new fasta file where we rename the seuquences
 			if lines[j].startswith(">") : #if line is a sequence id
-				#print("ligne j",lines[j].rstrip())
-				#print("index[n]", index[n])			#these three lines are for debugging
-				#print('nom de la sequence', names[index[n]])
 				lines[j] = names[index[n]] #changes sequence name at line j by the name at position [index[n]] which is the n_th position of the index, itself the  number of the sequence extracted from ">sequence_X". At each iteration of sequence name the n is incremented (+1)
 				n += 1
 	with open(curr_fasta, "w") as f :
@@ -256,29 +253,28 @@ def extract_kmer(source, verbose) :
 ## main
 
 create_dir(args.output, args.verbose) #create output dir
-p = subprocess.Popen(['cp', args.fastafile, args.output], stderr = subprocess.PIPE)
+p = subprocess.Popen(['cp', args.fastafile, args.output], stderr = subprocess.PIPE) #copies the fasta file in the output dir
 p.wait()
 if args.verbose >= 1 :
 	print("Going to {} directory".format(args.output))
-os.chdir(args.output)
+os.chdir(args.output) #goes to output dir
 fasta = [i for i in os.listdir("./") if i.endswith(".fst")][0]
 parameters = "_".join([str(args.kmer), str(args.epsilon), str(args.delta),str(args.minpoints), str(args.dimpca)]) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
-with open("cluster_"+parameters+'.txt', "w") as f :
+with open("cluster_"+parameters+'.txt', "w") as f : #prepares output file
 	f.writelines(["cluster_name\tepsilon\tfather_size\tchild1_size\tchild2_size\n"])
 os.mkdir("cluster.1") #creates the directories for the two first clusters
 os.mkdir("cluster.2")
 folders = ["cluster.1", "cluster.2"] #initialises the list of cluster directories to visit
-other_folders = [] #initiates the list of clusters yielded by a single cluster in main loop
 if args.verbose >= 1 :
 	print("Counting kmers and saving in a primary counts file ...")
-command = " ".join(['fasta2kmer', fasta, str(args.kmer), str(args.threads), '0', '>', './counts.kmer'])
+command = " ".join(['fasta2kmer', fasta, str(args.kmer), str(args.threads), '0', '>', './counts.kmer']) #counts kmers in sequences
 p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
 p.wait()
-command = " ".join(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.dimpca), str(args.threads)]) 
+command = " ".join(['kmer2pca', 'counts.kmer', 'counts.pca', 'counts.ev', str(args.dimpca), str(args.threads)]) #PCA from kmer matrix
 p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)
 p.wait()
 epsilon = args.epsilon
-command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
+command = " ".join(["grep", "-c", "'>'", fasta]) #counts the number of sequences in  children files to store counts in output file
 parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True).rstrip()
 out_loop = 0
 curr_dir = os.getcwd().split("/")[-1]
@@ -292,23 +288,23 @@ while out_loop != 4 :
 	p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
 	p.wait()
 	out_loop = count_files('cluster')
-	if out_loop > 4 :
-		if args.growth : 
-			epsilon += args.delta
+	if out_loop > 4 : #if more than 2 clusters found
+		if args.growth == 1 : #if growth of epsilon
+			epsilon += args.delta #increase epsilon
 		else :
 			print("Clustering of {} yielded more than two clusters.".format(args.fastafile))
-			shutil.rmtree("cluster")
+			shutil.rmtree("cluster") #if not growth, then dead-end reached, stops program
 			sys.exit() 
-	elif out_loop < 4 : #if less than 2 clusters thus 4 files found:
-		if epsilon <= 0 :
+	elif out_loop < 4 : #if less than 2 clusters found:
+		if epsilon <= 0 : 
 			if args.verbose >= 1 :
 				print('Clustering of {} yielded 0 cluster'.format(args.fastafile))
-			with open("../cluster_"+parameters+".txt", "a") as f:
+			with open("./cluster_"+parameters+".txt", "a") as f:
 				f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code $
 			shutil.rmtree("cluster") #cleans things up
 			sys.exit()
-		if args.growth :
-			print("Clustering of {} yielded less than 2 clusters.".format(args.fastafile))
+		if args.growth == 1 : #if growth
+			print("Clustering of {} yielded less than 2 clusters.".format(args.fastafile)) #dead-end reached, stops program
 			with open("./cluster_"+parameters+".txt", "a") as f:
 				f.writelines(['cluster', "\t", str(epsilon), "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
 			sys.exit()
@@ -354,9 +350,9 @@ leaf = [] #list of leavesn clusters to update sequences_parameters.txt
 for i in folders :
 	if args.verbose >= 1 :
 		print("Going to cluster directory {}.".format(i))
-	os.chdir(i)
+	os.chdir(i) #goes ot folder
 	if i.endswith(".1") :
-		source = re.sub(r"\.1$", "", i)
+		source = re.sub(r"\.1$", "", i) #finds parent folder name
 	elif i.endswith(".2"): 
 		source = re.sub(r"\.2$", "", i)
 	extract_kmer(source, args.verbose) #takes parent counts.kmer, extracts kmers into a new counts.kmer 
@@ -370,7 +366,7 @@ for i in folders :
 			print(command)
 		p = subprocess.Popen(command, shell = True, stderr=subprocess.PIPE)#produces the pca file
 		p.wait()
-		a = iter_epsilon(epsilon = args.epsilon, delta = args.delta, growth = True, dimpca = args.dimpca, minpoints = args.minpoints, verbose = args.verbose)
+		a = iter_epsilon(epsilon = args.epsilon, delta = args.delta, growth = args.growth, dimpca = args.dimpca, minpoints = args.minpoints, verbose = args.verbose)
 		if len(a) == 2 :
 			folders.extend(a) #adds the new folders to the list so they are visited too
 		else :
@@ -386,6 +382,7 @@ for i in folders :
 	np.savetxt("../sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
 	os.chdir('../')
 
+#following block of code adds a .0 to the cluster name where orhpans sequences were at last
 table = np.genfromtxt('./sequence_'+parameters+".txt", dtype = str) #numpy table of elements, n lines and 2 columns 
 for j in range(len(table[:,1])) :
 	if table[j,1] not in leaf : #if the sequences name of the j line is in the sequences list:
@@ -395,7 +392,7 @@ np.savetxt("./sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
 if args.verbose >= 2 :
 	print("Saving summary of sequence_{}.txt".format(parameters))
 
-command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c"
+command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c" #createes output file
 output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True)
 
 with open("sequence_summary.txt", "w") as f:

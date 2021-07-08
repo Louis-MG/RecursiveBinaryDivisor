@@ -30,7 +30,7 @@ For python 3.4.2:
 #if you dont have pip installed already (UNIX):
 
 curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-python get-pip.py --python-version 3.4.2
+python get-pip.py 
 
 #in case of installation troubles, refer to https://pip.pypa.io/en/stable/installing/
 #python packages required:
@@ -74,15 +74,16 @@ sequences and the respective name of the last cluster it belonged to. Exemple gi
 |sequenceXXXXXXX|cluster|
 |sequenceYYYYYYY|cluster.1.2.1|
 |sequenceZZZZZZZ|cluster.2.1|
-|sequenceAAAAAAA|cluster.1|
+|sequenceAAAAAAA|cluster.1.0|
 
 * The third file is a summary of sequence_parameters, conveniently named sequence_summary.txt . It contains the number of sequences 
 remaining in a cluster. In the case of a leaf, the number corresponds to the number of sequence in the leaf. In case of a branch, the 
-number corresponds to the sequences fromn the custer that were not assigned to a sub-cluster; these are orphans.  
+number corresponds to the sequences fromn the custer that were not assigned to a sub-cluster; these are orphans and are denominated with a .0 added ot the cluster name.  
 
 |Sequences left|cluster_name|
 |:-:|:--------:|
-|240|cluster|
+|240|cluster.0|
+|45|cluster.1.0|
 |30|cluster.1.2|
 |12|cluster.2|
 

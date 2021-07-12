@@ -73,7 +73,7 @@ parser.add_argument('--output', '-o', dest = 'output', action = 'store', type = 
 							help = 'Specifies output file name if needed.')
 
 parser.add_argument('--minsize', '-s', dest = 'minsize', action = 'store', type = int, default = 50, 
-							help = 'Specifies minimum size of a cluster to try to subcluster it.')
+							help = 'Specifies minimum size of a cluster to try to subcluster it. Default: 50.')
 
 args = parser.parse_args()
 
@@ -156,7 +156,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 					print("Clustering of {} yielded more than 2 clusters.".format(curr_dir))
 				with open("../cluster_"+parameters+".txt", "a") as f :
 					f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code
-				sys.exit()
+				return([])
 		if test < 4 : #if less than 2 clusters found
 			if epsilon <= 0 : #stops the program if epsilon is null or negative
 				if verbose >= 1 :
@@ -259,7 +259,7 @@ if args.verbose >= 1 :
 	print("Going to {} directory".format(args.output))
 os.chdir(args.output) #goes to output dir
 fasta = [i for i in os.listdir("./") if i.endswith(".fst")][0]
-parameters = "_".join([str(args.kmer), str(args.epsilon), str(args.delta),str(args.minpoints), str(args.dimpca)]) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
+parameters = "_".join([str(args.kmer), str(args.epsilon), str(args.delta),str(args.minpoints), str(args.dimpca), str(args.minsize), str(args.growth)]) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
 with open("cluster_"+parameters+'.txt', "w") as f : #prepares output file
 	f.writelines(["cluster_name\tepsilon\tfather_size\tchild1_size\tchild2_size\n"])
 os.mkdir("cluster.1") #creates the directories for the two first clusters
@@ -382,7 +382,7 @@ for i in folders :
 	np.savetxt("../sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
 	os.chdir('../')
 
-#following block of code adds a .0 to the cluster name where orhpans sequences were at last
+#following block of code adds a .0 to the cluster name where orphans sequences were at last
 table = np.genfromtxt('./sequence_'+parameters+".txt", dtype = str) #numpy table of elements, n lines and 2 columns 
 for j in range(len(table[:,1])) :
 	if table[j,1] not in leaf : #if the sequences name of the j line is in the sequences list:
@@ -392,7 +392,7 @@ np.savetxt("./sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
 if args.verbose >= 2 :
 	print("Saving summary of sequence_{}.txt".format(parameters))
 
-command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c" #createes output file
+command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c" #creates output file
 output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True)
 
 with open("sequence_summary.txt", "w") as f:

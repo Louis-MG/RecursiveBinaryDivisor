@@ -24,7 +24,7 @@ cd bin
 export PATH=$PATH:$PWD
 ```
 
-For python 3.4.2:
+For RBD:
 
 ```
 #if you dont have pip installed already (UNIX):
@@ -42,11 +42,22 @@ pip install subprocess
 pip install argparse
 
 ```
+
+For rbd_pca.r:
+
+```
+#if your dont have r installed already, refer to https://linuxize.com/post/how-to-install-r-on-ubuntu-20-04/
+#open an R session in the console and type:
+install.packages('ggplot2', 'seqinr')
+
+```
+
 # Usage
 
 e.g. :
 ``` 
-python3 script.py -f test.fasta -e 0.5 -d 0.01 -o run_test
+python3 rbd.py -f test.fasta -e 0.5 -d 0.01 -o run_test -g
+Rscript rbd_pca.r run_test
 ```
 
 # Results
@@ -87,5 +98,6 @@ number corresponds to the sequences fromn the custer that were not assigned to a
 |30|cluster.1.2|
 |12|cluster.2|
 
+* The r script results in a pca plot of the sequences for each parent cluster (clusters that are divided by rbd).
 
 ###louis-mael.gueguen@etu.univ-lyon1.fr

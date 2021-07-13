@@ -22,12 +22,12 @@ getplot <- function(dir1) {
 	names_parent = getName(read.fasta(paste(parent_dir, '/', tail(files, n=1), sep = ''))) #gets the sequence names of the parent cluster
         groups = c(rep('0', length(names_parent)))
 	df = read.table(paste(parent_dir, '/', files[3], sep = ''), sep = '\t')
-	df = data.frame(names_parent, df[,1:2])
-	df = data.frame(df, groups, stringAsFactor = FALSE)
-        colnames(df) = c('seq_names', 'coo1', 'coo2', 'coo3', 'groups')
+	df = data.frame(names_parent, df[,1:2], stringAsFactors = FALSE)
+	df = data.frame(df, groups, stringAsFactors = FALSE)
+        colnames(df) = c('seq_names', 'coo1', 'coo2', 'groups')
 	df$groups[which(df$seq_names %in% names_cluster1)] = '1' #changes values in column groups for sequences of cluster.1
         df$groups[which(df$seq_names %in% names_cluster2)] = '2' #same for cluster.1
-	g = ggplot(df[,2:3], aes(df$coo1, df$coo2, colour = df$groups))+geom_jitter(alpha = 0.3)+xlab('First principal component')+ylab('Second principal component')+labs(color='CLuster belonging of the sequences')+theme(axis.text = element_text(size=15), axis.title = element_text(size=20))
+	g = ggplot(df[,2:3], aes(coo1, coo2, colour = df$groups))+geom_jitter(alpha = 0.3)+xlab('First principal component')+ylab('Second principal component')+labs(color='CLuster belonging of the sequences')+theme(axis.text = element_text(size=15), axis.title = element_text(size=20))
 	ggsave(paste(parent_dir, '/', 'plotPCA', parent_dir,'.png', sep = ''), width = 16, height = 9, dpi = 300)
 }
 

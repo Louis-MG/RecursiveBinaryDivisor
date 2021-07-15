@@ -100,6 +100,6 @@ number corresponds to the sequences fromn the custer that were not assigned to a
 |30|cluster.1.2|
 |12|cluster.2|
 
-* The r script results in a pca plot of the sequences for each parent cluster (clusters that are divided by rbd).
+* The r script yields 2 pca plots of the sequences for each parent cluster (clusters that are divided by rbd). Dimensions 1 and 2, 2 and 3 are used.
 
 ###louis-mael.gueguen@etu.univ-lyon1.fr

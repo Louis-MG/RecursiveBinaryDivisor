@@ -20,15 +20,17 @@ getplot <- function(dir1) {
 	names_cluster2 = getName(read.fasta(paste(dir2, '/', tail(files, n=1), sep = ''))) #gets the sequence names in fastaCL2.fst
 	files = list.files(parent_dir)
 	names_parent = getName(read.fasta(paste(parent_dir, '/', tail(files, n=1), sep = ''))) #gets the sequence names of the parent cluster
-        groups = c(rep('0', length(names_parent)))
+        groups = c(rep('cluster.0', length(names_parent)))
 	df = read.table(paste(parent_dir, '/', files[3], sep = ''), sep = '\t')
-	df = data.frame(names_parent, df[,1:2], stringAsFactors = FALSE)
+	df = data.frame(names_parent, df[,1:3], stringAsFactors = FALSE)
 	df = data.frame(df, groups, stringAsFactors = FALSE)
-        colnames(df) = c('seq_names', 'coo1', 'coo2', 'groups')
-	df$groups[which(df$seq_names %in% names_cluster1)] = '1' #changes values in column groups for sequences of cluster.1
-        df$groups[which(df$seq_names %in% names_cluster2)] = '2' #same for cluster.1
+        colnames(df) = c('seq_names', 'coo1', 'coo2', 'coo3', 'groups')
+	df$groups[which(df$seq_names %in% names_cluster1)] = 'cluster.1' #changes values in column groups for sequences of cluster.1
+        df$groups[which(df$seq_names %in% names_cluster2)] = 'cluster.2' #same for cluster.1
 	g = ggplot(df[,2:3], aes(coo1, coo2, colour = df$groups))+geom_jitter(alpha = 0.3)+xlab('First principal component')+ylab('Second principal component')+labs(color='CLuster belonging of the sequences')+theme(axis.text = element_text(size=15), axis.title = element_text(size=20))
-	ggsave(paste(parent_dir, '/', 'plotPCA', parent_dir,'.png', sep = ''), width = 16, height = 9, dpi = 300)
+	ggsave(paste(parent_dir, '/', 'plotPCA1', parent_dir,'.png', sep = ''), width = 16, height = 9, dpi = 300)
+	g = ggplot(df[,3:4], aes(coo2, coo3, colour = df$groups))+geom_jitter(alpha = 0.3)+xlab('Second principal component')+ylab('Third principal component')+labs(colour = 'Cluster belonging of the sequences')+theme(axis.text = element_text(size=15), axis.title = element_text(size=20))
+	ggsave(paste(parent_dir, '/', 'plotPCA2', parent_dir,'.png', sep = ''), width = 16, height = 9, dpi = 300)
 }
 
 lapply(directories, getplot)

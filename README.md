@@ -50,14 +50,16 @@ For rbd_pca.r:
 #open an R session in the console and type:
 install.packages('ggplot2', 'seqinr')
 
+#or install them through the CLI following the tutorial https://linuxize.com/post/how-to-install-r-on-ubuntu-18-04/
+
 ```
 
 # Usage
 
 e.g. :
 ``` 
-python3 rbd.py -f test.fasta -e 0.5 -d 0.01 -o run_test -g
-Rscript rbd_pca.r run_test
+python3 rbd.py -f test.fasta -e 0.5 -d 0.01 -o output_rbd -g
+Rscript rbd_pca.r output_rbd
 ```
 
 # Results

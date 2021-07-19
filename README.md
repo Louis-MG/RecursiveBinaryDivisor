@@ -24,7 +24,7 @@ cd bin
 export PATH=$PATH:$PWD
 ```
 
-For python 3.4.2:
+For RBD:
 
 ```
 #if you dont have pip installed already (UNIX):
@@ -42,11 +42,25 @@ pip install subprocess
 pip install argparse
 
 ```
+
+For rbd_pca.r:
+
+```
+#if your dont have r installed already, refer to https://linuxize.com/post/how-to-install-r-on-ubuntu-20-04/
+#open an R session in the console and type:
+install.packages('ggplot2', 'seqinr')
+
+#or install them through the CLI following the tutorial https://linuxize.com/post/how-to-install-r-on-ubuntu-18-04/
+
+```
+
 # Usage
 
 e.g. :
 ``` 
-python3 script.py -f test.fasta -e 0.5 -d 0.01 -o run_test
+python3 rbd.py -f test.fasta -e 0.5 -d 0.01 -o output_rbd -g
+Rscript rbd_pca.r output_rbd
+python3 seq_highlight.py --seq seq_of_interest.txt --fasta test.fst --output seq_highlight.txt --rbd sequence_5_0.5_0.01_5.txt 
 ```
 
 # Results
@@ -86,6 +100,15 @@ number corresponds to the sequences fromn the custer that were not assigned to a
 |45|cluster.1.0|
 |30|cluster.1.2|
 |12|cluster.2|
+
+* The R script yields 2 pca plots of the sequences for each parent cluster (clusters that are divided by rbd). Dimensions 1 and 2, 2 and 3 are used.
+* The seq_highlight.py script yields a tabulated file that contains the ids of the sequences of interest and their last cluster belonging assigned by rbd.
+
+|sequence_id|cluster_name|
+|:---------:|:----------:|
+|sequenceXXXXXXX|cluster|
+|sequenceUUUUUUU|cluster.1.1.2|
+|sequenceOOOOOOO|cluster.1.1.1.1|
 
 
 ###louis-mael.gueguen@etu.univ-lyon1.fr

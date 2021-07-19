@@ -259,7 +259,10 @@ if args.verbose >= 1 :
 	print("Going to {} directory".format(args.output))
 os.chdir(args.output) #goes to output dir
 fasta = [i for i in os.listdir("./") if i.endswith(".fst")][0]
-parameters = "_".join([str(args.kmer), str(args.epsilon), str(args.delta),str(args.minpoints), str(args.dimpca), str(args.minsize), str(args.growth)]) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
+if args.growth :
+	parameters = "_".join([str(args.kmer), str(args.epsilon), str(args.delta),str(args.minpoints), str(args.dimpca), str(args.minsize), 'g']) #name for file containing ckuster name and its corresponding epsilon value ("-" if cluster is a leaf)
+else :
+	parameters = "_".join([str(args.kmer), str(args.epsilon), str(args.delta),str(args.minpoints), str(args.dimpca), str(args.minsize)])
 with open("cluster_"+parameters+'.txt', "w") as f : #prepares output file
 	f.writelines(["cluster_name\tepsilon\tfather_size\tchild1_size\tchild2_size\n"])
 os.mkdir("cluster.1") #creates the directories for the two first clusters
@@ -399,4 +402,4 @@ with open("sequence_summary.txt", "w") as f:
 	f.writelines(output)
 
 #TODO: change output for orphans
-##### louis-mael.gueguen@etu.univ-lyon1.fr alpha10.05.2021
+##### louis-mael.gueguen@etu.univ-lyon1.fr v1.1 19.07.2021

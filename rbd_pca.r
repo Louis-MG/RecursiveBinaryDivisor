@@ -8,7 +8,7 @@ args = commandArgs()
 
 setwd(args[6])
 directories = dir("./", pattern = '.1$') 
-
+print(directories)
 #the global startegy is to list the directories that ends with .1. For each dir, take the root, the .2, do the trick and get the figure 
 
 getplot <- function(dir1) {
@@ -25,11 +25,11 @@ getplot <- function(dir1) {
 	df = data.frame(names_parent, df[,1:3], stringAsFactors = FALSE)
 	df = data.frame(df, groups, stringAsFactors = FALSE)
         colnames(df) = c('seq_names', 'coo1', 'coo2', 'coo3', 'groups')
-	df$groups[which(df$seq_names %in% names_cluster1)] = 'cluster.1' #changes values in column groups for sequences of cluster.1
-        df$groups[which(df$seq_names %in% names_cluster2)] = 'cluster.2' #same for cluster.1
-	g = ggplot(df[,2:3], aes(coo1, coo2, colour = df$groups))+geom_jitter(alpha = 0.3)+xlab('First principal component')+ylab('Second principal component')+labs(color='CLuster belonging of the sequences')+theme(axis.text = element_text(size=15), axis.title = element_text(size=20))
+	df$groups[which(df$seq_names %in% names_cluster1)] <- 'cluster.1' #changes values in column groups for sequences of cluster.1
+        df$groups[which(df$seq_names %in% names_cluster2)] <- 'cluster.2' #same for cluster.1	
+	g = ggplot(df, aes(coo1, coo2, colour = groups))+geom_jitter(alpha = 0.3)+xlab('First principal component')+ylab('Second principal component')+labs(color='CLuster belonging of the sequences')+theme(axis.text = element_text(size=15), axis.title = element_text(size=20))
 	ggsave(paste(parent_dir, '/', 'plotPCA1', parent_dir,'.png', sep = ''), width = 16, height = 9, dpi = 300)
-	g = ggplot(df[,3:4], aes(coo2, coo3, colour = df$groups))+geom_jitter(alpha = 0.3)+xlab('Second principal component')+ylab('Third principal component')+labs(colour = 'Cluster belonging of the sequences')+theme(axis.text = element_text(size=15), axis.title = element_text(size=20))
+	g = ggplot(df, aes(coo2, coo3, colour = groups))+geom_jitter(alpha = 0.3)+xlab('Second principal component')+ylab('Third principal component')+labs(colour = 'Cluster belonging of the sequences')+theme(axis.text = element_text(size=15), axis.title = element_text(size=20))
 	ggsave(paste(parent_dir, '/', 'plotPCA2', parent_dir,'.png', sep = ''), width = 16, height = 9, dpi = 300)
 }
 

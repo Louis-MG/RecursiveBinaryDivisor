@@ -35,11 +35,12 @@ python get-pip.py
 #in case of installation troubles, refer to https://pip.pypa.io/en/stable/installing/
 #python packages required:
 
-pip install numpy
 pip install regex
 pip install shutils
+pip install numpy
 pip install subprocess
 pip install argparse
+pip install textwrap
 
 ```
 

@@ -3,9 +3,9 @@
 
 import argparse
 import os
+import numpy as np
 import shutil
 import subprocess
-import numpy as np
 import sys
 from textwrap import dedent
 import re
@@ -14,13 +14,13 @@ import re
 #recap argument: fasta, kmer, epsilon, delta epsilon, growth,  dimpca, threads, verbose (2 levels), minpoints,  output, help
 
 parser = argparse.ArgumentParser(prog = 'script.py', formatter_class = argparse.RawDescriptionHelpFormatter, description = dedent('''\
-			Process fasta file, kmer length, epsilon arguments. PCA dimensions and numer of threads optionnal.'
+			Process fasta file, kmer length, epsilon arguments. PCA dimensions and number of threads optionnal.'
 
 			This program outputs three tabulated text files and several folders. Each folder corresponds to a cluster; it contains: 
-			 - the fasta file containing the sequences
-			 - the kmer counts of the fasta
+			 - the fasta file containing the sequences.
+			 - the kmer counts of the fasta.
 			 - the eigen values file and the pca file obtained from the count file. 
-			The first tabulated text file is named cluster_param.txt, where param is the chain of characters of the main arguments (kmer length, epsilon, delta epsilon, minpoints, dimpca). 
+			The first tabulated text file is named cluster_parameters.txt, where parameters is the chain of characters of the main arguments (kmer length, epsilon, delta epsilon, minpoints, dimpca). 
 			Its header and content is the following:
 			
 			cluster_name	epsilon	father_size	son1_size	son2_size	
@@ -134,6 +134,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 	command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
 	parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 	out_loop = False
+	previous_test = 0
 	while out_loop != True : #allows to loop until a return
 		if verbose >= 1 :
 			print(epsilon)
@@ -155,7 +156,10 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 				if verbose >= 1 :
 					print("Clustering of {} yielded more than 2 clusters.".format(curr_dir))
 				with open("../cluster_"+parameters+".txt", "a") as f :
-					f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code
+					if previous_test == 2 :
+						f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code ofr when dbscan when from 1 to 3 cluster found, no sons
+					else :
+						f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code
 				return([])
 		if test < 4 : #if less than 2 clusters found
 			if epsilon <= 0 : #stops the program if epsilon is null or negative
@@ -169,7 +173,10 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 				if verbose >= 1:
 					print("Clustering of {} yielded less than 2 clusters.".format(curr_dir)) #if growth, dead-end so program stops
 				with open("../cluster_"+parameters+".txt", "a") as f:
-                        	        f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code and no sons so no sizes
+					if previous_test == 6:	
+						f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code for when dbscan went from 3 to 1 cluster found and no sons so no sizes
+					else :
+						f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code for other cases
 				shutil.rmtree("cluster") #cleans things up
 				return([]) #returns list of length = 0
 			else :
@@ -200,6 +207,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 			shutil.move('cluster/ev-001', dir_2)
 			shutil.rmtree("cluster") #cleans things up
 			return [dir_1.lstrip("../"), dir_2.lstrip("../")] #returns the two directories created, which contains respectively the newly created cluster 1 and 2 from the previous cluster
+		previous_test = test
 
 def extract_names(source, verbose) :
 	"""
@@ -378,28 +386,38 @@ for i in folders :
 		leaf.append(i)
 	if args.verbose >= 2 :
 		print("Updating the last cluster belonging of sequences ...")
-	table = np.genfromtxt('../sequence_'+parameters+".txt", dtype = str) #numpy table of elements, n lines and 2 columns 
-	for j in range(len(table[:,0])) :
-		if table[j,0]+"\n" in sequences : #if the sequences name of the j line is in the sequences list:
-			table[j,1] = i
-	np.savetxt("../sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t")
+	with open('../sequence_'+parameters+".txt", 'r') as f:
+		table = f.readlines()	
+	for j in range(len(table)) : #for each line of the file
+		line = table[j].split('\t') #store line splitted on tab to separate the columns
+		if line[0]+'\n' in sequences : #if the sequence id of the line is in the list of seq_id from the cluster we explore
+			line[1] = i+'\n' #update the cluster belonging
+		table[j] = line[0]+'\t'+line[1] #restore the original line format
+	with open('../sequence_'+parameters+".txt", 'w') as f:
+		f.writelines(table) #save
 	os.chdir('../')
 
 #following block of code adds a .0 to the cluster name where orphans sequences were at last
-table = np.genfromtxt('./sequence_'+parameters+".txt", dtype = str) #numpy table of elements, n lines and 2 columns 
-for j in range(len(table[:,1])) :
-	if table[j,1] not in leaf : #if the sequences name of the j line is in the sequences list:
-		table[j,1] = table[j,1]+'.0'
-np.savetxt("./sequence_"+parameters+".txt", table, fmt = '%s', delimiter = "\t") #file is updated with .0 added to oprhan sequences
+with open('./sequence_'+parameters+".txt", 'r') as f:
+	table = f.readlines() 
+for j in range(len(table)) :
+	line = table[j].split() #store line splitted on tab to separate the columns
+	if line[1] not in leaf :
+		line[1] = line[1].rstrip()+'.0' #if the cluster of the sequence id is not in the leaves list, .0 added
+	table[j] = line[0]+'\t'+line[1]+'\n' #restores line format
+with open('./sequence_'+parameters+".txt", 'w') as f:
+	f.writelines(table)
 
 if args.verbose >= 2 :
 	print("Saving summary of sequence_{}.txt".format(parameters))
 
-command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c" #creates output file
+command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c" #creates third output file
 output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True)
-
 with open("sequence_summary.txt", "w") as f:
 	f.writelines(output)
 
-#TODO: change output for orphans
+if args.verbose >= 1 :
+	print('The clusters {} are leaves of the classification tree (they are not divided).'.format([i for i in leaf]))
+	#add % of the clusters that are taged -2
+
 ##### louis-mael.gueguen@etu.univ-lyon1.fr v1.1 19.07.2021

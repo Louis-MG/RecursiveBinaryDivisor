@@ -156,8 +156,9 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 				if verbose >= 1 :
 					print("Clustering of {} yielded more than 2 clusters.".format(curr_dir))
 				with open("../cluster_"+parameters+".txt", "a") as f :
-					if previous_test == 2 :
-						f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code ofr when dbscan when from 1 to 3 cluster found, no sons
+					if test == 6 : #if 3 clusters found at the step X
+						if previous_test == 2 : #if step X-1 yielded 1 cluster :
+							f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code ofr when dbscan when from 1 to 3 cluster found, no sons
 					else :
 						f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code
 				return([])
@@ -173,8 +174,9 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 				if verbose >= 1:
 					print("Clustering of {} yielded less than 2 clusters.".format(curr_dir)) #if growth, dead-end so program stops
 				with open("../cluster_"+parameters+".txt", "a") as f:
-					if previous_test == 6:	
-						f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code for when dbscan went from 3 to 1 cluster found and no sons so no sizes
+					if test == 1 :
+						if previous_test == 6:	
+							f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code for when dbscan went from 3 to 1 cluster found and no sons so no sizes
 					else :
 						f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code for other cases
 				shutil.rmtree("cluster") #cleans things up

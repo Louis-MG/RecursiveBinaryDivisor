@@ -28,7 +28,7 @@ parser = argparse.ArgumentParser(prog = 'script.py', formatter_class = argparse.
 			Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: 
 			
 			 - -1 signifies no sub-cluster was found in the cluster_name
-			 - -2 indicates that one cluster was detected in cluster_name; this subcluster is named and put in a folder that will not be visited by the algorithm.
+			 - -2 indicates that the cluster count went from 3 to 1 or 1 to 3 without being at 2: this might inidicate a delta epsilon too high.
 			
 			The second tabulated text file is sequence_parameters.txt, where parameters is written as described above. It contains the names of the sequences and the respective name of the last cluster it belonged to.
 
@@ -265,6 +265,7 @@ def extract_kmer(source, verbose) :
 create_dir(args.output, args.verbose) #create output dir
 p = subprocess.Popen(['cp', args.fastafile, args.output], stderr = subprocess.PIPE) #copies the fasta file in the output dir
 p.wait()
+os.rename(args.output+'/'+args.fastafile.split('/')[-1], args.output+'/'+'cluster.fst')
 if args.verbose >= 1 :
 	print("Going to {} directory".format(args.output))
 os.chdir(args.output) #goes to output dir
@@ -419,7 +420,8 @@ with open("sequence_summary.txt", "w") as f:
 	f.writelines(output)
 
 if args.verbose >= 1 :
-	print('The clusters {} are leaves of the classification tree (they are not divided).'.format([i for i in leaf]))
+	print('There are {} leaves of the classification tree (they are not divided).'.format(len(leaf)))
 	#add % of the clusters that are taged -2
+	#add the % of orphan sequences; read the summary file, add the first element of the split('\t') if the line endswith('.0')
 
 ##### louis-mael.gueguen@etu.univ-lyon1.fr v1.1 19.07.2021

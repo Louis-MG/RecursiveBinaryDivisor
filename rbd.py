@@ -416,12 +416,21 @@ if args.verbose >= 2 :
 
 command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c" #creates third output file
 output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True)
+
+#the following block of code is udes to give a bit of statistical output to the user, % of orphans
+total = 0
+orphans = 0 
+for i in output.strip().split('\n') :
+	total += int(i.strip().split(' ')[0])
+	if i.endswith('.0') :
+		orphans += int(i.strip().split(' ')[0])
+
 with open("sequence_summary.txt", "w") as f:
 	f.writelines(output)
 
 if args.verbose >= 1 :
 	print('There are {} leaves of the classification tree (they are not divided).'.format(len(leaf)))
 	#add % of the clusters that are taged -2
-	#add the % of orphan sequences; read the summary file, add the first element of the split('\t') if the line endswith('.0')
+	print('The proportion of orphans is {}.'.format(orphans/total))
 
-##### louis-mael.gueguen@etu.univ-lyon1.fr v1.1 19.07.2021
+##### louis-mael.gueguen@etu.univ-lyon1.fr v1.2 28.07.2021

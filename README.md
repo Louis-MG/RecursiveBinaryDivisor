@@ -77,7 +77,7 @@ epsilon, delta epsilon, minpoints, dimpca). Its header and content is the follow
 |cluster|1.2|1000|400|500|
 |cluster.1|1.5|400|200|100|	
 |cluster.1.1|-1|200|NONE|NONE|
-|cluster.1.2|0.9|100|30|20|
+|cluster.1.2|-5|100|NONE|NONE|
 
 Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: -1 signifies no or just one sub-cluster was found.
  
@@ -102,7 +102,7 @@ number corresponds to the sequences fromn the custer that were not assigned to a
 |30|cluster.1.2|
 |12|cluster.2|
 
-* The R script yields 2 pca plots of the sequences for each parent cluster (clusters that are divided by rbd). Dimensions 1 and 2, 2 and 3 are used.
+* The R script yields 3 pca plots of the sequences for each parent cluster (clusters that are divided by rbd). Dimensions 1 and 2, 2 and 3 are used. 3 additionnal plots are produced, showing final clusters in colors only. They are placed at the output folder's root. 
 * The seq_highlight.py script yields a tabulated file that contains the ids of the sequences of interest and their last cluster belonging assigned by rbd.
 
 |sequence_id|cluster_name|

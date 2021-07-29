@@ -2,7 +2,7 @@
 import argparse
 
 parser = argparse.ArgumentParser(prog = 'script.py', formatter_class = argparse.RawDescriptionHelpFormatter, description = '''\
-Takes a file of one-line sequences as input, sequences_parameters.txt from rbd, the original fasta file, returns a file with ids and last cluster belonging (assigned by rbd) from a reference fasta file as output.
+Takes a file of one-line sequences as input, sequences_parameters.txt from rbd, the original fasta file, returns a file with ids and last cluster belonging (assigned by rbd) from a reference fasta file as output for each match of each sequences of interest. The order follows the one of the file sequence_of_interest.txt
 			''')
 
 parser.add_argument('--seq', '-s', dest = 'seq', action = 'store', type = str, required = True, help = 'Input file with one sequence per 									line')

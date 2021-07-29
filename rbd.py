@@ -9,6 +9,7 @@ import subprocess
 import sys
 from textwrap import dedent
 import re
+import errno
 
 ## arguments
 #recap argument: fasta, kmer, epsilon, delta epsilon, growth,  dimpca, threads, verbose (2 levels), minpoints,  output, help
@@ -25,11 +26,8 @@ parser = argparse.ArgumentParser(prog = 'script.py', formatter_class = argparse.
 			
 			cluster_name	epsilon	father_size	son1_size	son2_size	
 			
-			Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: 
-			
-			 - -1 signifies no sub-cluster was found in the cluster_name
-			 - -2 indicates that one cluster was detected in cluster_name; this subcluster is named and put in a folder that will not be visited by the algorithm.
-			
+			Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: it is the number of cluster (obligatory different than 2) found by rbd that caused the program to stop. If the flag -g was set, this number will be inferior to 2, otherwise superior.  
+
 			The second tabulated text file is sequence_parameters.txt, where parameters is written as described above. It contains the names of the sequences and the respective name of the last cluster it belonged to.
 
 			>sequence_name cluster_name
@@ -129,13 +127,12 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 	fasta = [i for i in os.listdir("./") if i.startswith("fasta")][0] #selects the fasta file in the current directory
 	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0] #selects counts.pca
 	with open(fasta, 'r') as f :
-		lines = f.readlines() #stores sequences 
-		sequences = [i.rstrip('\n') for i in lines if i.startswith(">")]
+		lines = f.readlines() #stores lines
+		sequences = [i.rstrip('\n') for i in lines if i.startswith(">")] #stores sequences from the lines
 	command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
 	parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
-	out_loop = False
-	previous_test = 0
-	while out_loop != True : #allows to loop until a return
+	test = 0
+	while test != 4 : #allows to loop until a return, not a nice way to do it
 		if verbose >= 1 :
 			print(epsilon)
 		if os.path.exists("cluster") :
@@ -147,7 +144,13 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 		p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE) #finds clusters
 		p.wait()
 		test = count_files('cluster') #counts clusters
-		if test > 4 :
+		if test == 0:
+			if verbose >= 1 :
+				print("Clustering of {} yielded 0 cluster.".format(curr_dir))
+			with open("../cluster_"+parameters+".txt", "a") as f :
+				f.writelines([str(curr_dir), "\t", "0", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
+			return([])
+		elif test > 4 :
 			if args.growth == 1 :
 				epsilon += args.delta #increases epsilon if more than 2 clusters
 				shutil.rmtree("cluster") #cleans things up
@@ -156,32 +159,23 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 				if verbose >= 1 :
 					print("Clustering of {} yielded more than 2 clusters.".format(curr_dir))
 				with open("../cluster_"+parameters+".txt", "a") as f :
-					if previous_test == 2 :
-						f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code ofr when dbscan when from 1 to 3 cluster found, no sons
-					else :
-						f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"]) #error code
+					f.writelines([str(curr_dir), "\t", str(-test/2), "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
 				return([])
-		if test < 4 : #if less than 2 clusters found
-			if epsilon <= 0 : #stops the program if epsilon is null or negative
-				if verbose >= 1 :
-					print('Clustering of {} yielded 0 cluster'.format(curr_dir))
-				with open("../cluster_"+parameters+".txt", "a") as f:
-					f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code $
-				shutil.rmtree("cluster") #cleans things up
-				return([])
+		elif test < 4 : #if less than 2 clusters found
 			if args.growth == 1 :
 				if verbose >= 1:
 					print("Clustering of {} yielded less than 2 clusters.".format(curr_dir)) #if growth, dead-end so program stops
 				with open("../cluster_"+parameters+".txt", "a") as f:
-					if previous_test == 6:	
-						f.writelines([str(curr_dir), "\t", "-2", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code for when dbscan went from 3 to 1 cluster found and no sons so no sizes
-					else :
-						f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code for other cases
+					f.writelines([str(curr_dir), "\t", str(-test/2), "\t", parent, "\t","NONE","\t","NONE", "\n"]) 
 				shutil.rmtree("cluster") #cleans things up
 				return([]) #returns list of length = 0
 			else :
 				epsilon -= args.delta #decreases epsilon if less than 2 clusters
 				shutil.rmtree("cluster")
+				if epsilon <= 0 :
+					with open("../cluster_"+parameters+".txt", "a") as f:
+						f.writelines([str(curr_dir), "\t", "0", "\t", parent, "\t","NONE","\t","NONE", "\n"])
+					return([])
 		elif test == 4 : #if 2 clusters are found, saved as .1 and .2 and added to the list for further split
 			if verbose == True :
 				print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epsilon))
@@ -207,7 +201,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 			shutil.move('cluster/ev-001', dir_2)
 			shutil.rmtree("cluster") #cleans things up
 			return [dir_1.lstrip("../"), dir_2.lstrip("../")] #returns the two directories created, which contains respectively the newly created cluster 1 and 2 from the previous cluster
-		previous_test = test
+	
 
 def extract_names(source, verbose) :
 	"""
@@ -260,9 +254,13 @@ def extract_kmer(source, verbose) :
 	
 ## main
 
+if os.path.isfile(args.fastafile) == False :
+	raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.fastafile)
+
 create_dir(args.output, args.verbose) #create output dir
 p = subprocess.Popen(['cp', args.fastafile, args.output], stderr = subprocess.PIPE) #copies the fasta file in the output dir
 p.wait()
+os.rename(args.output+'/'+args.fastafile.split('/')[-1], args.output+'/'+'cluster.fst')
 if args.verbose >= 1 :
 	print("Going to {} directory".format(args.output))
 os.chdir(args.output) #goes to output dir
@@ -287,9 +285,9 @@ p.wait()
 epsilon = args.epsilon
 command = " ".join(["grep", "-c", "'>'", fasta]) #counts the number of sequences in  children files to store counts in output file
 parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True).rstrip()
-out_loop = 0
+test = 0
 curr_dir = os.getcwd().split("/")[-1]
-while out_loop != 4 :
+while test != 4 :
 	if args.verbose >= 1 :
 		print(epsilon)
 	if os.path.exists('cluster') : 
@@ -298,30 +296,28 @@ while out_loop != 4 :
 	command = " ".join(['cluster_dbscan_pca', fasta, "counts.pca", str(args.dimpca), str(epsilon), str(args.minpoints), 'cluster/fastaCL', 'cluster/ev'])
 	p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
 	p.wait()
-	out_loop = count_files('cluster')
-	if out_loop > 4 : #if more than 2 clusters found
+	test = count_files('cluster')
+	if test > 4 : #if more than 2 clusters found
 		if args.growth == 1 : #if growth of epsilon
 			epsilon += args.delta #increase epsilon
 		else :
 			print("Clustering of {} yielded more than two clusters.".format(args.fastafile))
+			with open("./cluster_"+parameters+".txt", "a") as f:
+				f.writelines([str(curr_dir), "\t", str(-test/2), "\t", parent, "\t","NONE","\t","NONE", "\n"])
 			shutil.rmtree("cluster") #if not growth, then dead-end reached, stops program
 			sys.exit() 
-	elif out_loop < 4 : #if less than 2 clusters found:
-		if epsilon <= 0 : 
-			if args.verbose >= 1 :
-				print('Clustering of {} yielded 0 cluster'.format(args.fastafile))
-			with open("./cluster_"+parameters+".txt", "a") as f:
-				f.writelines([str(curr_dir), "\t", "-1", "\t", parent, "\t","NONE","\t","NONE", "\n"]) #error code $
-			shutil.rmtree("cluster") #cleans things up
-			sys.exit()
+	elif test < 4 : #if less than 2 clusters found:
 		if args.growth == 1 : #if growth
 			print("Clustering of {} yielded less than 2 clusters.".format(args.fastafile)) #dead-end reached, stops program
 			with open("./cluster_"+parameters+".txt", "a") as f:
-				f.writelines(['cluster', "\t", str(epsilon), "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
+				f.writelines(['cluster', "\t", str(-test/2), "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
 			sys.exit()
 		else :
 			epsilon -= args.delta
-	elif out_loop == 4 :
+			if epsilon <= 0 :
+				with open("./cluster_"+parameters+".txt", "a") as f:
+					f.writelines(['cluster', "\t", "-0", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
+	elif test == 4 :
 		if args.verbose >= 1 :
 			print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epsilon))
 		command = "grep -c '>' cluster/fastaCL-000" #this line and the following count the number of sequences in  children files to store in in output file
@@ -413,11 +409,21 @@ if args.verbose >= 2 :
 
 command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c" #creates third output file
 output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True)
+
+#the following block of code is udes to give a bit of statistical output to the user, % of orphans
+total = 0
+orphans = 0 
+for i in output.strip().split('\n') :
+	total += int(i.strip().split(' ')[0])
+	if i.endswith('.0') :
+		orphans += int(i.strip().split(' ')[0])
+
 with open("sequence_summary.txt", "w") as f:
 	f.writelines(output)
 
 if args.verbose >= 1 :
-	print('The clusters {} are leaves of the classification tree (they are not divided).'.format([i for i in leaf]))
+	print('There are {} final clusters in the classification tree (they are not divided).'.format(len(leaf)))
 	#add % of the clusters that are taged -2
+	print('The proportion of orphans is {}.'.format(orphans/total))
 
-##### louis-mael.gueguen@etu.univ-lyon1.fr v1.1 19.07.2021
+##### louis-mael.gueguen@etu.univ-lyon1.fr v1.2 28.07.2021

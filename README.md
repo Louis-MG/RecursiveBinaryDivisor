@@ -61,12 +61,17 @@ e.g. :
 ``` 
 python3 rbd.py -f test.fasta -e 0.5 -d 0.01 -o output_rbd -g
 Rscript rbd_pca.r output_rbd
-python3 seq_highlight.py --seq seq_of_interest.txt --fasta test.fst --output seq_highlight.txt --rbd sequence_5_0.5_0.01_5.txt 
+python3 seq_highlight.py -s seq_of_interest.txt -f test.fst -o seq_highlight.txt -r sequence_5_0.5_0.01_5.txt
+
+#for more options, you can use:
+
+python3 rbd.py -h
+python3 seq_highlight.py -h 
 ```
 
 # Results
 
-This program outputs 3 tabulated files and several folders. Each folder corresponds to a cluster; it contains: the fasta file 
+The rbd program outputs 3 tabulated files and several folders. Each folder corresponds to a cluster; it contains: the fasta file 
 containing the sequences, the kmer counts of the fasta, the eigen values file and the pca file obtained from the count file. 
 
 * The first tabulated text file is named cluster_param.txt, where param is the chain of carachters of the main arguments (kmer length, 
@@ -77,7 +82,7 @@ epsilon, delta epsilon, minpoints, dimpca). Its header and content is the follow
 |cluster|1.2|1000|400|500|
 |cluster.1|1.5|400|200|100|	
 |cluster.1.1|-1|200|NONE|NONE|
-|cluster.1.2|0.9|100|30|20|
+|cluster.1.2|-5|100|NONE|NONE|
 
 Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: -1 signifies no or just one sub-cluster was found.
  
@@ -102,7 +107,7 @@ number corresponds to the sequences fromn the custer that were not assigned to a
 |30|cluster.1.2|
 |12|cluster.2|
 
-* The R script yields 2 pca plots of the sequences for each parent cluster (clusters that are divided by rbd). Dimensions 1 and 2, 2 and 3 are used.
+* The R script yields 3 pca plots of the sequences for each parent cluster (clusters that are divided by rbd). Dimensions 1 and 2, 2 and 3 are used. 3 additionnal plots are produced, showing final clusters in colors only. They are placed at the output folder's root. 
 * The seq_highlight.py script yields a tabulated file that contains the ids of the sequences of interest and their last cluster belonging assigned by rbd.
 
 |sequence_id|cluster_name|

@@ -254,7 +254,7 @@ def extract_kmer(source, verbose) :
 	
 ## main
 
-if os.path.isdir(args.fastafile) == False :
+if os.path.isfile(args.fastafile) == False :
 	raise FileNotFoundError(errno.ENOENT, os.strerror(errno.ENOENT), args.fastafile)
 
 create_dir(args.output, args.verbose) #create output dir

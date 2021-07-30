@@ -61,8 +61,9 @@ e.g. :
 ``` 
 python3 rbd.py -f test.fasta -e 0.5 -d 0.01 -o output_rbd -g
 Rscript rbd_pca.r output_rbd
-python3 seq_highlight.py -s seq_of_interest.txt -f test.fst -o seq_highlight.txt -r sequence_5_0.5_0.01_5.txt
+python3 seq_highlight.py -s seq_of_interest.txt -f test.fst -o seq_highlight.txt -r sequence_parameters.txt
 
+#reminder: sequence_parameters.txt is one of the 3 outputs from rbd (hence the long option name --rbd). See output section below for more details. 
 #for more options, you can use:
 
 python3 rbd.py -h
@@ -74,7 +75,7 @@ python3 seq_highlight.py -h
 The rbd program outputs 3 tabulated files and several folders. Each folder corresponds to a cluster; it contains: the fasta file 
 containing the sequences, the kmer counts of the fasta, the eigen values file and the pca file obtained from the count file. 
 
-* The first tabulated text file is named cluster_param.txt, where param is the chain of carachters of the main arguments (kmer length, 
+* The first tabulated text file is named cluster_parameters.txt, where parameters is the chain of carachters of the main arguments (kmer length, 
 epsilon, delta epsilon, minpoints, dimpca). Its header and content is the following:
 
 |cluster_name|epsilon|father_size|son1_size|son2_size|

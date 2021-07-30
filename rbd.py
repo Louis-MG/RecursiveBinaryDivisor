@@ -115,24 +115,24 @@ def count_files(path) :
 
 def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 	"""
-	Creates two new clusters from one by search of the right epsilon value. Creates two new fodlers for the new clusters. Each name takes the parent's name and adds .1 and .2 respectively.
-	epsilon: value of epsilon desired for the split.
-	delta: value of the incremental value.
+	Creates two new clusters from one by search of the right epsilon value. Creates two new folders for the new clusters. Each name takes the parent's name and adds .1 and .2 respectively.
+	epsilon: base value used for the split.
+	delta: value of the increment or decrement
 	growth: 1 or 0 for increase or decrease of the epsilon parameter.
 	minpoints: minimum number of points (which are pca projections of sequences) in the epsilon radius required to create a new cluster.
-	verbose: (optionnal) more information about the process in the standard output. 3 levels.
+	verbose: (optional) more information about the process in the standard output. 3 levels.
 	Command usage: iter_epsilon(0.8, 0.01, 7, 1, 3, 1)
 	"""
 	curr_dir = os.getcwd().split("/")[-1]
 	fasta = [i for i in os.listdir("./") if i.startswith("fasta")][0] #selects the fasta file in the current directory
 	pca = [i for i in os.listdir("./") if i.endswith(".pca")][0] #selects counts.pca
 	with open(fasta, 'r') as f :
-		lines = f.readlines() #stores lines
+		lines = f.readlines() #stores lines of the fasta file
 		sequences = [i.rstrip('\n') for i in lines if i.startswith(">")] #stores sequences from the lines
 	command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
 	parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 	test = 0
-	while test != 4 : #allows to loop until a return, not a nice way to do it
+	while test != 4 : #will loop until a return is met
 		if verbose >= 1 :
 			print(epsilon)
 		if os.path.exists("cluster") :
@@ -144,13 +144,13 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 		p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE) #finds clusters
 		p.wait()
 		test = count_files('cluster') #counts clusters
-		if test == 0:
+		if test == 0: #if 0 cluster found
 			if verbose >= 1 :
 				print("Clustering of {} yielded 0 cluster.".format(curr_dir))
 			with open("../cluster_"+parameters+".txt", "a") as f :
 				f.writelines([str(curr_dir), "\t", "0", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
 			return([])
-		elif test > 4 :
+		elif test > 4 : #if more than 3 clusters are found (2 files per cluster)
 			if args.growth == 1 :
 				epsilon += args.delta #increases epsilon if more than 2 clusters
 				shutil.rmtree("cluster") #cleans things up
@@ -205,8 +205,8 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 
 def extract_names(source, verbose) :
 	"""
-	Extracts the names of the sequences from the parent fasta file located in source. Index is given by the output of extract_kmer().
-	source: parent folder where to find the parent fasta file. Path.
+	Extracts the names of the sequences from the parent fasta file located in source.
+	source: parent folder where to find the parent fasta file. Is a path.
 	verbose = boolean
 	Command usage: extract_name(/path/to/parent/folder, 1)
 	"""
@@ -316,7 +316,7 @@ while test != 4 :
 			epsilon -= args.delta
 			if epsilon <= 0 :
 				with open("./cluster_"+parameters+".txt", "a") as f:
-					f.writelines(['cluster', "\t", "-0", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
+					f.writelines(['cluster', "\t", "0", "\t", parent, "\t", "NONE", "\t", "NONE", "\n"])
 	elif test == 4 :
 		if args.verbose >= 1 :
 			print("Clustering of {} done, with epsilon = {}.".format(curr_dir, epsilon))
@@ -423,7 +423,7 @@ with open("sequence_summary.txt", "w") as f:
 
 if args.verbose >= 1 :
 	print('There are {} final clusters in the classification tree (they are not divided).'.format(len(leaf)))
-	#add % of the clusters that are taged -2
+	#idea: add % of the clusters that are taged 0 or -test/2
 	print('The proportion of orphans is {}.'.format(orphans/total))
 
-##### louis-mael.gueguen@etu.univ-lyon1.fr v1.2 28.07.2021
+##### louis-mael.gueguen@etu.univ-lyon1.fr v1.2 29.07.2021

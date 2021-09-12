@@ -73,6 +73,9 @@ parser.add_argument('--output', '-o', dest = 'output', action = 'store', type = 
 parser.add_argument('--minsize', '-s', dest = 'minsize', action = 'store', type = int, default = 50, 
 							help = 'Specifies minimum size of a cluster to try to subcluster it. Default: 50.')
 
+parser.add_argument('--rscript', '-r', dest = 'rscript', action = 'count', default = 0, 
+						help = 'Produces the figures with the Rscript automatically at the end of the process. Default: 0')
+
 args = parser.parse_args()
 
 ## subfunctions
@@ -425,5 +428,16 @@ if args.verbose >= 1 :
 	print('There are {} final clusters in the classification tree (they are not divided).'.format(len(leaf)))
 	#idea: add % of the clusters that are taged 0 or -test/2
 	print('The proportion of orphans is {}.'.format(orphans/total))
+
+
+if args.rscript >= 1: #if the flag is used, toggles the production of the pca figures to on
+	command = "Rscript rbd_pca.r {}".format(args.output) 
+	print(command) #check, to be removed
+	print(os.getcwd())
+	os.chdir("../")
+	p = subprocess.Popen(command, shell = True, stderr = subprocess.PIPE)
+	p.wait()
+
+print("Pca figures produced.")
 
 ##### louis-mael.gueguen@etu.univ-lyon1.fr v1.2 29.07.2021

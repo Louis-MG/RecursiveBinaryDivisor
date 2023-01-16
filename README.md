@@ -118,4 +118,4 @@ number corresponds to the sequences fromn the custer that were not assigned to a
 |sequenceOOOOOOO|cluster.1.1.1.1|
 
 
-###louis-mael.gueguen@etu.univ-lyon1.fr
+###louis-mael.gueguen@crchudequebec.ulaval.ca

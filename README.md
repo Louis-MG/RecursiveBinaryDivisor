@@ -1,11 +1,12 @@
 # Summary
 
-The Recursive Binary Divisor recursively splits clusters in two until it cannot annymore. For this, the  script uses the mnhn-tree-tools (Haschka T. 2021) in a specific way. It first operates the count of kmers, the applies a pca on these counts. The projection is used as a support for dbscan. The epsilon parameter of dbscan is decreased until a binary division occures. Then it adds the resulting clusters to a list. The tool visits and expands the list at the same time.  
+The Recursive Binary Divisor clusters sequences using a density-based algorithm. For this, the script uses the mnhn-tree-tools (Haschka T. 2021) in a specific way. It first operates the count of kmers, then applies a pca on these counts. The projection is used as a support for dbscan: distance between each point is calculated; if enough points are within distance epsilon of each-others, the density threshold is reached and a cluster is found. The density parameter epsilon is reduced until exactly 2 clusters are found. The sequences forming each cluster are separated, the others are left out. The steps count/pca/projection/density-based-clustering are repeated on each precendently found clusters. The final result is a tree. Its leefs are the clusters that are visualised.
+
 # Installation
 
 * Dependencies:
 
-Make sure you have a GCC compiler version >= 4.9.2
+Make sure you have a GCC compiler version >= 4.9.2, pip and the R language.
 
 For MNHN-Tree-Tools:
 
@@ -19,8 +20,7 @@ mkdir bin
 make all
 cd bin
 
-# make MNHN-Tree-Tools available from any folder ( this is temporary, you
-# may modify your .bashrc and similar files to make this permanent
+# make MNHN-Tree-Tools available from any folder temporarily
 export PATH=$PATH:$PWD
 ```
 
@@ -29,48 +29,32 @@ For RBD:
 ```
 #if you dont have pip installed already (UNIX):
 
-curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-python get-pip.py 
-
-#in case of installation troubles, refer to https://pip.pypa.io/en/stable/installing/
-#python packages required:
-
-pip install regex
-pip install shutils
-pip install numpy
-pip install subprocess
-pip install argparse
-pip install textwrap
+pip install regex shutils numpy subprocess argparse textwrap
 
 ```
 
-For rbd_pca.r:
+For rbd_pca.r, open R in the console and paste:
 
 ```
-#if your dont have r installed already, refer to https://linuxize.com/post/how-to-install-r-on-ubuntu-20-04/
-#open an R session in the console and type:
 install.packages('ggplot2', 'seqinr')
-
-#or install them through the CLI following the tutorial https://linuxize.com/post/how-to-install-r-on-ubuntu-18-04/
 
 ```
 
 # Usage
+
+```
+python3 rbd.py -h
+python3 seq_highlight.py -h
+```
 
 e.g. :
 ``` 
 python3 rbd.py -f test.fasta -e 0.5 -d 0.01 -o output_rbd -g
 Rscript rbd_pca.r output_rbd
 python3 seq_highlight.py -s seq_of_interest.txt -f test.fst -o seq_highlight.txt -r sequence_parameters.txt
-
-#reminder: sequence_parameters.txt is one of the 3 outputs from rbd (hence the long option name --rbd). See output section below for more details. 
-#for more options, you can use:
-
-python3 rbd.py -h
-python3 seq_highlight.py -h 
 ```
 
-# Results
+# Output files format
 
 The rbd program outputs 3 tabulated files and several folders. Each folder corresponds to a cluster; it contains: the fasta file 
 containing the sequences, the kmer counts of the fasta, the eigen values file and the pca file obtained from the count file. 
@@ -108,7 +92,7 @@ number corresponds to the sequences fromn the custer that were not assigned to a
 |30|cluster.1.2|
 |12|cluster.2|
 
-* The R script yields 3 pca plots of the sequences for each parent cluster (clusters that are divided by rbd). Dimensions 1 and 2, 2 and 3 are used. 3 additionnal plots are produced, showing final clusters in colors only. They are placed at the output folder's root. 
+* The R script yields 3 pca plots of the sequences for each parent cluster (clusters that are divided by rbd). Dimensions 1 and 2, 2 and 3, 1 and 3 are used. 3 additionnal plots are produced, showing final clusters in colors only. They are placed at the output folder's root. 
 * The seq_highlight.py script yields a tabulated file that contains the ids of the sequences of interest and their last cluster belonging assigned by rbd.
 
 |sequence_id|cluster_name|

@@ -6,7 +6,7 @@ The Recursive Binary Divisor clusters sequences using a density-based algorithm.
 
 * Dependencies:
 
-Make sure you have a GCC compiler version >= 4.9.2, pip and the R language.
+Make sure you have a GCC compiler version >= 4.9.2, pip and the R language installed.
 
 For MNHN-Tree-Tools:
 
@@ -30,14 +30,12 @@ For RBD:
 #if you dont have pip installed already (UNIX):
 
 pip install regex shutils numpy subprocess argparse textwrap
-
 ```
 
 For rbd_pca.r, open R in the console and paste:
 
 ```
 install.packages('ggplot2', 'seqinr')
-
 ```
 
 # Usage

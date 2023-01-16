@@ -16,28 +16,6 @@ import errno
 
 parser = argparse.ArgumentParser(prog = 'script.py', formatter_class = argparse.RawDescriptionHelpFormatter, description = dedent('''\
 			Process fasta file, kmer length, epsilon arguments. PCA dimensions and number of threads optionnal.'
-
-			This program outputs three tabulated text files and several folders. Each folder corresponds to a cluster; it contains: 
-			 - the fasta file containing the sequences.
-			 - the kmer counts of the fasta.
-			 - the eigen values file and the pca file obtained from the count file. 
-			The first tabulated text file is named cluster_parameters.txt, where parameters is the chain of characters of the main arguments (kmer length, epsilon, delta epsilon, minpoints, dimpca). 
-			Its header and content is the following:
-			
-			cluster_name	epsilon	father_size	son1_size	son2_size	
-			
-			Epsilon  is either a positive float (the real epsilon) or a negative integer that indicates an error code: it is the number of cluster (obligatory different than 2) found by rbd that caused the program to stop. If the flag -g was set, this number will be inferior to 2, otherwise superior.  
-
-			The second tabulated text file is sequence_parameters.txt, where parameters is written as described above. It contains the names of the sequences and the respective name of the last cluster it belonged to.
-
-			>sequence_name cluster_name
-
-			The third tabulated text file is sequence_summary.txt. It contains the number of sequences in each cluster after the complete distribution. If the cluster is a leaf, the number is the number of sequences in the cluster. If the cluster is a branch the number is the number of sequences that are orphans of the next division. 
-			For 1000 sequences :			
-
-			200 cluster
-			500 cluster.1
-			300 cluster.2
 			'''))
 
 parser.add_argument('--fasta_file', '-f', dest = 'fastafile', action = 'store', type = str, required = True, 
@@ -105,7 +83,7 @@ def create_dir(path, verbose) :
 
 def count_files(path) :
 	"""
-	Count and returns the number of files in a directory.
+	Counts and returns the number of files in a directory.
 	path: path-like object
 	Command usage: count_files(./cluster1)
 	"""
@@ -132,7 +110,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 	command = " ".join(["grep", "-c", "'>'", fasta]) #this line and the following count the number of sequences in  children files to store in in output file
 	parent = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines=True).rstrip()
 	test = 0
-	while test != 4 : #will loop until a return is met
+	while test != 4 : #will loop until 4 files are found (success, 2 clusters found) or 0 clusters are found (failed)
 		if verbose >= 1 :
 			print(epsilon)
 		if os.path.exists("cluster") :
@@ -187,6 +165,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 				print("Parent with size {} has been clustered in {}  of size {} and {} of size {}".format(parent, curr_dir+".1", son1, curr_dir+".2", son2))
 			with open("../cluster_"+parameters+".txt", "a") as f:
 				f.writelines([str(curr_dir), "\t", str(epsilon), "\t", parent, "\t", son1, "\t", son2, "\n"])
+			##################################################################################################### mettre ca dans une fonciton clean() ou arrange()
 			dir_1 = curr_dir.join(["../", ".1"]) #names of the next directories
 			dir_2 = curr_dir.join(["../", ".2"])
 			os.mkdir(dir_1) #creates the output directories of the new clusters
@@ -201,7 +180,7 @@ def iter_epsilon(epsilon, delta, dimpca, growth, minpoints, verbose) :
 			shutil.move('cluster/ev-001', dir_2)
 			shutil.rmtree("cluster") #cleans things up
 			return [dir_1.lstrip("../"), dir_2.lstrip("../")] #returns the two directories created, which contains respectively the newly created cluster 1 and 2 from the previous cluster
-	
+
 
 def extract_names(source, verbose) :
 	"""
@@ -251,7 +230,8 @@ def extract_kmer(source, verbose) :
 	np.savetxt("./counts.kmer", sub_counts, fmt = '%s', delimiter = "\t") #saves in a new counts.kmer file
 	if verbose >= 2 :
 		print("Sub-counts saved in counts.kmer")
-	
+
+##########################################################################################recommenter la section, ca veut rien dire
 ## main
 
 if os.path.isfile(args.fastafile) == False :
@@ -357,13 +337,13 @@ leaf = [] #list of leavesn clusters to update sequences_parameters.txt
 for i in folders :
 	if args.verbose >= 1 :
 		print("Going to cluster directory {}.".format(i))
-	os.chdir(i) #goes ot folder
+	os.chdir(i) #goes to folder
 	if i.endswith(".1") :
 		source = re.sub(r"\.1$", "", i) #finds parent folder name
 	elif i.endswith(".2"): 
 		source = re.sub(r"\.2$", "", i)
-	extract_kmer(source, args.verbose) #takes parent counts.kmer, extracts kmers into a new counts.kmer 
-	extract_names(source, args.verbose) #extracts real sequences's names and inject them 
+	extract_kmer(source, args.verbose) #takes parent counts.kmer, extracts kmers into a new counts.kmer
+	extract_names(source, args.verbose) #extracts real sequences's names and inject them
 	with open([i for i in os.listdir("./") if i.startswith("fasta")][0], "r") as f :
 		lines = f.readlines()
 		sequences = [i for i in lines if i.startswith(">")] #list of the sequences names in the fasta of the currently visited folder
@@ -383,7 +363,7 @@ for i in folders :
 	if args.verbose >= 2 :
 		print("Updating the last cluster belonging of sequences ...")
 	with open('../sequence_'+parameters+".txt", 'r') as f:
-		table = f.readlines()	
+		table = f.readlines()
 	for j in range(len(table)) : #for each line of the file
 		line = table[j].split('\t') #store line splitted on tab to separate the columns
 		if line[0]+'\n' in sequences : #if the sequence id of the line is in the list of seq_id from the cluster we explore
@@ -410,9 +390,9 @@ if args.verbose >= 2 :
 command = "awk '{x=2; print $x}' "+"{}".format("sequence_"+parameters+".txt")+" | sort | uniq -c" #creates third output file
 output = subprocess.check_output(command, shell = True, stderr = subprocess.PIPE, universal_newlines = True)
 
-#the following block of code is udes to give a bit of statistical output to the user, % of orphans
+#the following block of code is used to give a bit of statistical output to the user, % of orphans
 total = 0
-orphans = 0 
+orphans = 0
 for i in output.strip().split('\n') :
 	total += int(i.strip().split(' ')[0])
 	if i.endswith('.0') :
@@ -426,4 +406,4 @@ if args.verbose >= 1 :
 	#idea: add % of the clusters that are taged 0 or -test/2
 	print('The proportion of orphans is {}.'.format(orphans/total))
 
-##### louis-mael.gueguen@etu.univ-lyon1.fr v1.2 29.07.2021
+###louis-mael.gueguen@crchudequebec.ulaval.ca v1.2 29.07.2021

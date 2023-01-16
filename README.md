@@ -40,9 +40,37 @@ install.packages('ggplot2', 'seqinr')
 
 # Usage
 
+For `rdb.py`:
 ```
-python3 rbd.py -h
-python3 seq_highlight.py -h
+usage: script.py [-h] --fasta_file FASTAFILE --epsilon EPSILON [--delta_epsilon DELTA] [--growth] [--min_points MINPOINTS] [--dim_pca DIMPCA] [--kmer_len KMER] [--threads THREADS] [--verbose] --output OUTPUT [--minsize MINSIZE]
+
+GENERAL:
+        --fasta_file FASTAFILE, -f FASTAFILE    Name of the fasta file containing the sequences to cluster during the different steps.
+        --threads THREADS, -n THREADS   Number of threads used by mnhn-tree-tools for the different calculation steps (default: 4).
+        --verbose, -v   Shows progression messages in standard output.
+        --output OUTPUT, -o OUTPUT      Specifies output file name if needed.
+        --help, -h      displays this help message and exits 
+
+PCA:
+        --kmer_len KMER, -k KMER        Length of the kmers processed by mnhn-tree-tools from the fastafile for the different calculation steps. Default: 5
+        --dim_pca DIMPCA, -p DIMPCA     Number of dimensions to use from the pca during the calculation steps (default: 7).
+
+CLUSTERING:
+	--epsilon EPSILON, -e EPSILON	Minium value of epsilon used for the different calculation steps. Float.
+	--delta_epsilon DELTA, -d DELTA	Minium difference between each epsilon of the dichotomy: when difference is inferior to delta, loop stops (default: 0.001).
+	--growth, -g	Gives directionnality of epsilon: increase or decrease. Default: 0.
+	--min_points MINPOINTS, -m MINPOINTS	Minimun number of sequences to find to form a cluster during the clustering steps (default: 3).
+        --minsize MINSIZE, -s MINSIZE   Specifies minimum size of a cluster to try to subcluster it. Default: 50.
+```
+
+For `seq_hilight.py`:
+```
+Options:
+	-h, --help	show this help message and exit
+	--seq SEQ, -s SEQ	Input file with one sequence per line
+	--fasta FASTA, -f FASTA	 Input reference fasta file
+	--output OUTPUT, -o OUTPUT	Name of the output file
+	--rbd RBD, -r RBD	Input file which is the sequence_parameters.txt file from rbd output
 ```
 
 e.g. :
